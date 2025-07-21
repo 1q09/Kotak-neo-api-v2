@@ -1,0 +1,36 @@
+{
+  "title": "Documentation Title",
+  "description": "This is a sample documentation site.",
+  "sections": [
+    {
+      "id": "introduction",
+      "title": "Introduction",
+      "content": "Welcome to the documentation site. This section introduces the project."
+    },
+    {
+      "id": "installation",
+      "title": "Installation",
+      "content": "Instructions on how to install the project."
+    },
+    {
+      "id": "usage",
+      "title": "Usage",
+      "content": "How to use the project effectively."
+    },
+    {
+      "id": "api",
+      "title": "API Reference",
+      "content": "Detailed API reference for developers."
+    },
+    {
+      "id": "contributing",
+      "title": "Contributing",
+      "content": "Guidelines for contributing to the project."
+    },
+    {
+      "id": "faq",
+      "title": "Frequently Asked Questions",
+      "content": "Common questions and answers regarding the project."
+    }
+  ]
+}

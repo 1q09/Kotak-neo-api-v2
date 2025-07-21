@@ -1,0 +1,66 @@
+{
+  "sections": [
+    {
+      "id": "login-with-totp",
+      "title": "Login with TOTP", 
+      "file": "content/login-with-totp.md"
+    },
+    {
+      "id": "totp-generation-steps",
+      "title": "TOTP Generation Steps",
+      "file": "content/totp-generation-steps.md"
+    },
+    {
+      "id": "instruments",
+      "title": "Instruments",
+      "file": "content/instruments.md"
+    },
+    {
+      "id": "order",
+      "title": "Order",
+      "file": "content/order.md",
+      "subsections": [
+        {
+          "id": "place-order",
+          "title": "Place Order", 
+          "file": "content/order/place-order.md"
+        },
+        {
+          "id": "modify-order",
+          "title": "Modify Order",
+          "file": "content/order/modify-order.md" 
+        },
+        {
+          "id": "cancel-order",
+          "title": "Cancel Order",
+          "file": "content/order/cancel-order.md"
+        }
+      ]
+    },
+    {
+      "id": "order-report-apis",
+      "title": "Order Report APIs",
+      "file": "content/order-report-apis.md"
+    },
+    {
+      "id": "positions", 
+      "title": "Positions",
+      "file": "content/positions.md"
+    },
+    {
+      "id": "holdings",
+      "title": "Holdings", 
+      "file": "content/holdings.md"
+    },
+    {
+      "id": "limits",
+      "title": "Limits",
+      "file": "content/limits.md"
+    },
+    {
+      "id": "margins",
+      "title": "Margins",
+      "file": "content/margins.md"
+    }
+  ]
+}
