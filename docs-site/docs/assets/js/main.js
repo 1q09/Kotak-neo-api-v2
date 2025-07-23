@@ -194,4 +194,36 @@ document.addEventListener('DOMContentLoaded', async function() {
         window.addEventListener('scroll', updateActiveNav);
         updateActiveNav(); // Initial call
     }
+    
+    // Scroll to Top Button functionality
+    function initializeScrollToTop() {
+        const scrollToTopBtn = document.getElementById('scroll-to-top');
+        
+        // Show/hide button based on scroll position
+        function toggleScrollButton() {
+            if (window.scrollY > 300) {
+                scrollToTopBtn.classList.add('visible');
+            } else {
+                scrollToTopBtn.classList.remove('visible');
+            }
+        }
+        
+        // Smooth scroll to top
+        function scrollToTop() {
+            window.scrollTo({
+                top: 0,
+                behavior: 'smooth'
+            });
+        }
+        
+        // Event listeners
+        window.addEventListener('scroll', toggleScrollButton);
+        scrollToTopBtn.addEventListener('click', scrollToTop);
+        
+        // Initial check
+        toggleScrollButton();
+    }
+    
+    // Initialize scroll to top button
+    initializeScrollToTop();
 });
