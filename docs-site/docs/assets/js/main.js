@@ -21,6 +21,9 @@ document.addEventListener('DOMContentLoaded', async function() {
     
     let allSections = [];
     
+    // Show loading indicator
+    showLoadingIndicator();
+    
     // Load structure and content
     try {
         const response = await fetch('data/structure.json');
@@ -36,15 +39,36 @@ document.addEventListener('DOMContentLoaded', async function() {
         initializeSearch();
         initializeNavigation();
         
+        // Hide loading indicator
+        hideLoadingIndicator();
+        
     } catch (error) {
         console.error('Error loading content:', error);
+        // Hide loading indicator and show error
+        hideLoadingIndicator();
         // Fallback content
         contentContainer.innerHTML = `
-            <section id="introduction">
-                <h1>Introduction</h1>
-                <p>Guide explaining the usage of API</p>
+            <section id="error">
+                <h1>Error Loading Documentation</h1>
+                <p>Sorry, there was an error loading the documentation. Please try refreshing the page.</p>
+                <p>Error details: ${error.message}</p>
             </section>
         `;
+    }
+
+    function showLoadingIndicator() {
+        contentContainer.innerHTML = `
+            <div class="loading-container">
+                <div class="loading-spinner"></div>
+                <h2>Loading Documentation...</h2>
+                <p>Please wait while we load the API documentation</p>
+            </div>
+        `;
+    }
+    
+    function hideLoadingIndicator() {
+        // The loading indicator will be replaced by actual content
+        // This function is here for consistency and future use
     }
     
     async function loadMarkdownFile(filePath) {
