@@ -224,6 +224,103 @@ document.addEventListener('DOMContentLoaded', async function() {
         toggleScrollButton();
     }
     
+    // Mobile Navigation functionality
+    function initializeMobileNavigation() {
+        const toggleBtn = document.getElementById('mobile-nav-toggle');
+        const overlay = document.getElementById('mobile-nav-overlay');
+        const drawer = document.getElementById('mobile-nav-drawer');
+        const closeBtn = document.getElementById('mobile-nav-close');
+        const mobileNavList = document.getElementById('mobile-navigation-list');
+
+        // Copy navigation items to mobile drawer
+        function populateMobileNav() {
+            const desktopNavList = document.getElementById('navigation-list');
+            if (desktopNavList) {
+                mobileNavList.innerHTML = desktopNavList.innerHTML;
+                
+                // Add click handlers for mobile nav links
+                const mobileLinks = mobileNavList.querySelectorAll('a');
+                mobileLinks.forEach(link => {
+                    link.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        const targetId = link.getAttribute('href').substring(1);
+                        const targetSection = document.getElementById(targetId);
+                        
+                        if (targetSection) {
+                            // Close mobile navigation
+                            closeMobileNav();
+                            
+                            // Scroll to section after a brief delay
+                            setTimeout(() => {
+                                targetSection.scrollIntoView({
+                                    behavior: 'smooth',
+                                    block: 'start'
+                                });
+                            }, 300);
+                        }
+                    });
+                });
+            }
+        }
+
+        // Open mobile navigation
+        function openMobileNav() {
+            document.body.style.overflow = 'hidden'; // Prevent background scrolling
+            overlay.classList.add('active');
+            drawer.classList.add('active');
+        }
+
+        // Close mobile navigation
+        function closeMobileNav() {
+            overlay.classList.remove('active');
+            drawer.classList.remove('active');
+            document.body.style.overflow = ''; // Restore scrolling
+        }
+
+        // Update active link in mobile navigation
+        function updateMobileActiveNav() {
+            const sections = document.querySelectorAll('section, div[id]');
+            const scrollPos = window.scrollY + 100;
+            const mobileLinks = mobileNavList.querySelectorAll('a');
+            
+            sections.forEach(section => {
+                const top = section.offsetTop;
+                const bottom = top + section.offsetHeight;
+                const id = section.getAttribute('id');
+                
+                if (scrollPos >= top && scrollPos < bottom) {
+                    mobileLinks.forEach(link => {
+                        link.classList.remove('active');
+                        if (link.getAttribute('href') === `#${id}`) {
+                            link.classList.add('active');
+                        }
+                    });
+                }
+            });
+        }
+
+        // Event listeners
+        if (toggleBtn) toggleBtn.addEventListener('click', openMobileNav);
+        if (closeBtn) closeBtn.addEventListener('click', closeMobileNav);
+        if (overlay) overlay.addEventListener('click', closeMobileNav);
+
+        // Close on escape key
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && drawer.classList.contains('active')) {
+                closeMobileNav();
+            }
+        });
+
+        // Populate mobile navigation when content loads
+        setTimeout(populateMobileNav, 1000);
+
+        // Update active navigation on scroll
+        window.addEventListener('scroll', updateMobileActiveNav);
+    }
+    
+    // Initialize mobile navigation
+    initializeMobileNavigation();
+    
     // Initialize scroll to top button
     initializeScrollToTop();
 });
