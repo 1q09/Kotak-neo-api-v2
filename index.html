@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kotak Neo API Documentation</title>
+    <link rel="stylesheet" href="assets/css/style.css">
+    <!-- Highlight.js CSS for syntax highlighting - using github theme -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <!-- Highlight.js JavaScript -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+</head>
+<body>
+    <!-- Mobile Navigation Toggle Button -->
+    <button id="mobile-nav-toggle" class="mobile-nav-toggle" aria-label="Open navigation">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M3 12H21M3 6H21M3 18H21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+    </button>
+
+    <!-- Mobile Navigation Overlay -->
+    <div id="mobile-nav-overlay" class="mobile-nav-overlay"></div>
+
+    <!-- Mobile Navigation Side Drawer -->
+    <div id="mobile-nav-drawer" class="mobile-nav-drawer">
+        <div class="mobile-nav-header">
+            <h3>Documentation</h3>
+            <button id="mobile-nav-close" class="mobile-nav-close" aria-label="Close navigation">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </button>
+        </div>
+        <div class="mobile-nav-content">
+            <ul id="mobile-navigation-list" class="mobile-nav-list">
+                <!-- Navigation will be generated dynamically -->
+            </ul>
+        </div>
+    </div>
+
+    <div class="container">
+        <main class="content">
+            <div class="search-container">
+                <input type="text" id="search" placeholder="Search documentation">
+            </div>
+            
+            <div class="documentation-content" id="documentation-content">
+                <!-- Content will be loaded dynamically from Markdown files -->
+            </div>
+        </main>
+
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h3>On this page</h3>
+            </div>
+            <nav id="nav" class="sticky-nav">
+                <ul id="navigation-list">
+                    <!-- Navigation will be generated dynamically -->
+                </ul>
+            </nav>
+        </aside>
+    </div>
+    
+    <!-- Floating Scroll to Top Button -->
+    <button id="scroll-to-top" class="scroll-to-top" aria-label="Scroll to top">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M12 4L4 12H8V20H16V12H20L12 4Z" fill="currentColor"/>
+        </svg>
+    </button>
+    
+    <script src="assets/js/main.js"></script>
+</body>
+</html>
