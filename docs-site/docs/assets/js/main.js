@@ -20,33 +20,45 @@ document.addEventListener('DOMContentLoaded', async function() {
     const navigationList = document.getElementById('navigation-list');
     
     let allSections = [];
+    let sectionsData = {};
+    let loadedSections = new Set();
+    let loadingQueue = [];
+    let isLoading = false;
     
-    // Show loading indicator
+    // Show initial loading indicator
     showLoadingIndicator();
     
-    // Load structure and content
+    // Load structure and start progressive loading
     try {
         const response = await fetch('data/structure.json');
         const structure = await response.json();
         
-        // Load all markdown content
-        await loadAllContent(structure.sections);
+        // Store sections data
+        sectionsData = structure.sections;
         
-        // Generate navigation
+        // Flatten sections for navigation and search
+        structure.sections.forEach(section => {
+            allSections.push(section);
+            if (section.subsections) {
+                section.subsections.forEach(subsection => {
+                    allSections.push(subsection);
+                });
+            }
+        });
+        
+        // Generate navigation immediately
         generateNavigation(structure.sections);
+        
+        // Start progressive loading: load first section immediately, then queue others
+        await progressivelyLoadContent(structure.sections);
         
         // Initialize functionality
         initializeSearch();
         initializeNavigation();
         
-        // Hide loading indicator
-        hideLoadingIndicator();
-        
     } catch (error) {
         console.error('Error loading content:', error);
-        // Hide loading indicator and show error
         hideLoadingIndicator();
-        // Fallback content
         contentContainer.innerHTML = `
             <section id="error">
                 <h1>Error Loading Documentation</h1>
@@ -84,38 +96,77 @@ document.addEventListener('DOMContentLoaded', async function() {
             return `<p>Content not available for ${filePath}</p>`;
         }
     }
-    
-    async function loadAllContent(sections) {
-        let contentHtml = '';
+
+    async function progressivelyLoadContent(sections) {
+        let allContentHtml = '';
         
-        for (const section of sections) {
-            allSections.push(section);
+        // First, load and show the first section immediately
+        if (sections.length > 0) {
+            const firstSection = sections[0];
+            console.log('Loading first section:', firstSection.title);
             
-            // Load main section content
-            const sectionContent = await loadMarkdownFile(section.file);
+            const firstSectionHtml = await loadSectionContent(firstSection);
+            allContentHtml += firstSectionHtml;
             
-            contentHtml += `<section id="${section.id}">${sectionContent}`;
+            // Display first section and hide loader
+            contentContainer.innerHTML = allContentHtml;
+            hljs.highlightAll();
+            hideLoadingIndicator();
             
-            // Load subsections if they exist
-            if (section.subsections) {
-                for (const subsection of section.subsections) {
-                    allSections.push(subsection);
-                    const subContent = await loadMarkdownFile(subsection.file);
-                    contentHtml += `
-                        <div id="${subsection.id}">
-                            ${subContent}
-                        </div>
-                    `;
-                }
+            // Mark first section as loaded
+            loadedSections.add(firstSection.id);
+            if (firstSection.subsections) {
+                firstSection.subsections.forEach(sub => loadedSections.add(sub.id));
             }
-            
-            contentHtml += `</section>`;
         }
         
-        contentContainer.innerHTML = contentHtml;
+        // Then load remaining sections in the background
+        for (let i = 1; i < sections.length; i++) {
+            const section = sections[i];
+            console.log('Background loading:', section.title);
+            
+            try {
+                const sectionHtml = await loadSectionContent(section);
+                allContentHtml += sectionHtml;
+                
+                // Update the DOM with new content
+                contentContainer.innerHTML = allContentHtml;
+                hljs.highlightAll();
+                
+                // Mark section as loaded
+                loadedSections.add(section.id);
+                if (section.subsections) {
+                    section.subsections.forEach(sub => loadedSections.add(sub.id));
+                }
+                
+                // Small delay to not block the UI
+                await new Promise(resolve => setTimeout(resolve, 100));
+                
+            } catch (error) {
+                console.error(`Error loading section ${section.title}:`, error);
+            }
+        }
         
-        // Apply syntax highlighting to all code blocks
-        hljs.highlightAll();
+        console.log('All sections loaded!');
+    }
+
+    async function loadSectionContent(section) {
+        let sectionHtml = '';
+        
+        // Load main section content
+        const sectionContent = await loadMarkdownFile(section.file);
+        sectionHtml = `<section id="${section.id}">${sectionContent}`;
+        
+        // Load subsections if they exist
+        if (section.subsections) {
+            for (const subsection of section.subsections) {
+                const subContent = await loadMarkdownFile(subsection.file);
+                sectionHtml += `<div id="${subsection.id}">${subContent}</div>`;
+            }
+        }
+        
+        sectionHtml += `</section>`;
+        return sectionHtml;
     }
     
     function generateNavigation(sections) {
@@ -132,6 +183,71 @@ document.addEventListener('DOMContentLoaded', async function() {
         });
         
         navigationList.innerHTML = navHtml;
+    }
+
+    function initializeSearch() {
+        searchInput.addEventListener('input', function() {
+            const searchTerm = this.value.toLowerCase();
+            const sections = document.querySelectorAll('section, div[id]');
+            
+            sections.forEach(section => {
+                if (!section.id || section.id === 'loading' || section.id === 'error') {
+                    return;
+                }
+                
+                const text = section.textContent.toLowerCase();
+                if (text.includes(searchTerm) || searchTerm === '') {
+                    section.style.display = 'block';
+                } else {
+                    section.style.display = 'none';
+                }
+            });
+        });
+    }
+
+    function initializeNavigation() {
+        const navLinks = document.querySelectorAll('.sticky-nav a');
+        
+        // Active navigation highlighting
+        function updateActiveNav() {
+            const sections = document.querySelectorAll('section, div[id]');
+            const scrollPos = window.scrollY + 100;
+            
+            sections.forEach(section => {
+                const top = section.offsetTop;
+                const bottom = top + section.offsetHeight;
+                const id = section.getAttribute('id');
+                
+                if (scrollPos >= top && scrollPos < bottom) {
+                    navLinks.forEach(link => {
+                        link.classList.remove('active');
+                        if (link.getAttribute('href') === `#${id}`) {
+                            link.classList.add('active');
+                        }
+                    });
+                }
+            });
+        }
+        
+        // Smooth scrolling for navigation links
+        navLinks.forEach(link => {
+            link.addEventListener('click', function(e) {
+                e.preventDefault();
+                const targetId = this.getAttribute('href').substring(1);
+                const targetSection = document.getElementById(targetId);
+                
+                if (targetSection) {
+                    targetSection.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }
+            });
+        });
+        
+        // Update active navigation on scroll
+        window.addEventListener('scroll', updateActiveNav);
+        updateActiveNav(); // Initial call
     }
     
     function initializeSearch() {
@@ -232,7 +348,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         const closeBtn = document.getElementById('mobile-nav-close');
         const mobileNavList = document.getElementById('mobile-navigation-list');
 
-        // Copy navigation items to mobile drawer
+                // Copy navigation items to mobile drawer
         function populateMobileNav() {
             const desktopNavList = document.getElementById('navigation-list');
             if (desktopNavList) {
