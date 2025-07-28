@@ -1,4 +1,7 @@
 document.addEventListener('DOMContentLoaded', async function() {
+    // Initialize theme from URL or localStorage
+    initializeTheme();
+    
     // Configure marked.js with highlight.js for syntax highlighting
     marked.setOptions({
         highlight: function(code, lang) {
@@ -439,4 +442,73 @@ document.addEventListener('DOMContentLoaded', async function() {
     
     // Initialize scroll to top button
     initializeScrollToTop();
+    
+    // Initialize theme management
+    initializeTheme();
+    
+    // Theme Management Functions
+    function initializeTheme() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const urlTheme = urlParams.get('theme');
+        
+        // Valid theme options
+        const validThemes = ['light', 'dark', 'system'];
+        
+        let selectedTheme = 'system'; // default
+        
+        if (urlTheme && validThemes.includes(urlTheme)) {
+            // Theme from URL takes priority
+            selectedTheme = urlTheme;
+            // Save to localStorage for future visits
+            localStorage.setItem('preferred-theme', selectedTheme);
+        } else {
+            // Check localStorage for saved preference
+            const savedTheme = localStorage.getItem('preferred-theme');
+            if (savedTheme && validThemes.includes(savedTheme)) {
+                selectedTheme = savedTheme;
+            }
+        }
+        
+        applyTheme(selectedTheme);
+        
+        // Add theme info to console for debugging
+        console.log(`Theme applied: ${selectedTheme}`);
+        if (urlTheme) {
+            console.log(`Theme from URL parameter: ${urlTheme}`);
+        }
+    }
+    
+    function applyTheme(theme) {
+        const body = document.body;
+        
+        // Remove any existing theme classes
+        body.classList.remove('theme-light', 'theme-dark', 'theme-system');
+        
+        // Apply the selected theme
+        body.classList.add(`theme-${theme}`);
+        
+        // Set data attribute for CSS targeting
+        body.setAttribute('data-theme', theme);
+        
+        // For system theme, we'll rely on CSS media queries
+        // For light/dark themes, we'll override the media queries
+    }
+    
+    // Expose theme function globally for potential future use
+    window.setTheme = function(theme) {
+        const validThemes = ['light', 'dark', 'system'];
+        if (validThemes.includes(theme)) {
+            applyTheme(theme);
+            localStorage.setItem('preferred-theme', theme);
+            
+            // Update URL without reloading the page
+            const url = new URL(window.location);
+            url.searchParams.set('theme', theme);
+            window.history.replaceState({}, '', url);
+            
+            console.log(`Theme changed to: ${theme}`);
+        } else {
+            console.error(`Invalid theme: ${theme}. Valid options are: ${validThemes.join(', ')}`);
+        }
+    };
 });

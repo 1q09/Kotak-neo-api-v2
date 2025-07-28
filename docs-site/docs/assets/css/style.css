@@ -876,3 +876,319 @@ pre code {
         border-bottom: 1px solid #30363d;
     }
 }
+
+/* Theme Management Overrides */
+/* Force light theme - override all dark mode styles */
+.theme-light,
+.theme-light body {
+    color: #333 !important;
+    background-color: #f8f9fa !important;
+}
+
+.theme-light .container {
+    background: white !important;
+    box-shadow: 0 0 10px rgba(0,0,0,0.1) !important;
+}
+
+.theme-light .sidebar {
+    background: #f8f9fa !important;
+    border-right: 1px solid #dee2e6 !important;
+}
+
+.theme-light .sidebar a {
+    color: #333 !important;
+}
+
+.theme-light .sidebar a:hover {
+    background: #e9ecef !important;
+}
+
+/* Override for active navigation items - blue background should always have white text */
+.theme-light .sticky-nav a.active,
+.theme-light .mobile-nav-list a.active {
+    background-color: #0969da !important;
+    color: white !important;
+}
+
+.theme-light .sidebar-header h3 {
+    color: #333 !important;
+}
+
+/* Fix search input */
+.theme-light #search {
+    background: white !important;
+    border: 1px solid #ddd !important;
+    color: #333 !important;
+}
+
+.theme-light #search::placeholder {
+    color: #999 !important;
+}
+
+.theme-light #search:focus {
+    border-color: #007bff !important;
+    box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1) !important;
+}
+
+/* Fix headings */
+.theme-light h1,
+.theme-light h2,
+.theme-light h3,
+.theme-light h4,
+.theme-light h5,
+.theme-light h6 {
+    color: #333 !important;
+}
+
+.theme-light h2 {
+    border-bottom: 1px solid #dee2e6 !important;
+}
+
+/* Fix paragraphs and lists */
+.theme-light p,
+.theme-light li {
+    color: #666 !important;
+}
+
+/* Fix code blocks */
+.theme-light pre,
+.theme-light code {
+    background: #f8f9fa !important;
+    color: #333 !important;
+}
+
+/* Fix tables */
+.theme-light table {
+    border: 1px solid #d1d9e0 !important;
+}
+
+.theme-light th {
+    background-color: #f6f8fa !important;
+    border-bottom: 1px solid #d1d9e0 !important;
+    color: #333 !important;
+}
+
+.theme-light td {
+    border-bottom: 1px solid #d1d9e0 !important;
+    color: #333 !important;
+}
+
+.theme-light .loading-message {
+    color: #666 !important;
+}
+
+.theme-light .loading-container h2 {
+    color: #333 !important;
+}
+
+.theme-light .scroll-to-top {
+    background: #007bff !important;
+    color: white !important;
+}
+
+.theme-light .mobile-nav-toggle {
+    background: #f8f9fa !important;
+    color: #333 !important;
+    border: 1px solid #dee2e6 !important;
+}
+
+.theme-light .mobile-nav {
+    background: #f8f9fa !important;
+}
+
+.theme-light .mobile-nav a {
+    color: #333 !important;
+    border-bottom: 1px solid #dee2e6 !important;
+}
+
+.theme-light .mobile-nav-header h3 {
+    color: #333 !important;
+}
+
+.theme-light .mobile-nav-overlay {
+    background: rgba(0, 0, 0, 0.5) !important;
+}
+
+/* Fix section loading and error states */
+.theme-light .section-loading h3 {
+    color: #333 !important;
+}
+
+.theme-light .section-error h2 {
+    color: #333 !important;
+}
+
+.theme-light .section-error p {
+    color: #666 !important;
+}
+
+.theme-light .retry-button {
+    background: #007bff !important;
+    color: white !important;
+}
+
+.theme-light .retry-button:hover {
+    background: #0056b3 !important;
+}
+
+/* Force dark theme */
+.theme-dark,
+.theme-dark body {
+    color: #e6edf3 !important;
+    background-color: #0d1117 !important;
+}
+
+.theme-dark .container {
+    background: #161b22 !important;
+    box-shadow: 0 0 20px rgba(0,0,0,0.3) !important;
+}
+
+.theme-dark .sidebar {
+    background: #0d1117 !important;
+    border-right: 1px solid #30363d !important;
+}
+
+.theme-dark .sidebar a {
+    color: #e6edf3 !important;
+}
+
+.theme-dark .sidebar a:hover {
+    background: #21262d !important;
+}
+
+/* Override for active navigation items - blue background should always have white text */
+.theme-dark .sticky-nav a.active,
+.theme-dark .mobile-nav-list a.active {
+    background-color: #0969da !important;
+    color: white !important;
+}
+
+.theme-dark .sidebar-header h3 {
+    color: #e6edf3 !important;
+}
+
+/* Fix search input */
+.theme-dark #search {
+    background: #21262d !important;
+    border: 1px solid #30363d !important;
+    color: #e6edf3 !important;
+}
+
+.theme-dark #search::placeholder {
+    color: #7d8590 !important;
+}
+
+.theme-dark #search:focus {
+    border-color: #58a6ff !important;
+    box-shadow: 0 0 0 3px rgba(88, 166, 255, 0.3) !important;
+}
+
+/* Fix headings */
+.theme-dark h1,
+.theme-dark h2,
+.theme-dark h3,
+.theme-dark h4,
+.theme-dark h5,
+.theme-dark h6 {
+    color: #e6edf3 !important;
+}
+
+.theme-dark h2 {
+    border-bottom: 1px solid #30363d !important;
+}
+
+/* Fix paragraphs and lists */
+.theme-dark p,
+.theme-dark li {
+    color: #7d8590 !important;
+}
+
+/* Fix code blocks */
+.theme-dark pre,
+.theme-dark code {
+    background: #161b22 !important;
+    color: #e6edf3 !important;
+}
+
+/* Fix tables */
+.theme-dark table {
+    border: 1px solid #30363d !important;
+}
+
+.theme-dark th {
+    background-color: #21262d !important;
+    border-bottom: 1px solid #30363d !important;
+    color: #e6edf3 !important;
+}
+
+.theme-dark td {
+    border-bottom: 1px solid #30363d !important;
+    color: #e6edf3 !important;
+}
+
+.theme-dark .loading-message {
+    color: #8b949e !important;
+}
+
+.theme-dark .loading-container h2 {
+    color: #e6edf3 !important;
+}
+
+.theme-dark .scroll-to-top {
+    background: #238636 !important;
+    color: white !important;
+}
+
+.theme-dark .mobile-nav-toggle {
+    background: #21262d !important;
+    color: #e6edf3 !important;
+    border: 1px solid #30363d !important;
+}
+
+.theme-dark .mobile-nav {
+    background: #0d1117 !important;
+}
+
+.theme-dark .mobile-nav a {
+    color: #e6edf3 !important;
+    border-bottom: 1px solid #30363d !important;
+}
+
+.theme-dark .mobile-nav-header h3 {
+    color: #e6edf3 !important;
+}
+
+.theme-dark .mobile-nav-overlay {
+    background: rgba(0, 0, 0, 0.8) !important;
+}
+
+/* Fix section loading and error states */
+.theme-dark .section-loading h3 {
+    color: #e6edf3 !important;
+}
+
+.theme-dark .section-error h2 {
+    color: #e6edf3 !important;
+}
+
+.theme-dark .section-error p {
+    color: #8b949e !important;
+}
+
+.theme-dark .retry-button {
+    background: #238636 !important;
+    color: white !important;
+}
+
+.theme-dark .retry-button:hover {
+    background: #2ea043 !important;
+}
+
+/* System theme uses media queries - no overrides needed */
+
+/* Global override: Active navigation items should always have white text on blue background */
+.sticky-nav a.active,
+.mobile-nav-list a.active {
+    background-color: #0969da !important;
+    color: white !important;
+}
