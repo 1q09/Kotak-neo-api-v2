@@ -214,7 +214,8 @@ document.addEventListener('DOMContentLoaded', async function() {
         // Active navigation highlighting
         function updateActiveNav() {
             const sections = document.querySelectorAll('section, div[id]');
-            const scrollPos = window.scrollY + 100;
+            const contentElement = document.querySelector('.content');
+            const scrollPos = contentElement.scrollTop + 100;
             
             sections.forEach(section => {
                 const top = section.offsetTop;
@@ -249,7 +250,8 @@ document.addEventListener('DOMContentLoaded', async function() {
         });
         
         // Update active navigation on scroll
-        window.addEventListener('scroll', updateActiveNav);
+        const contentElement = document.querySelector('.content');
+        contentElement.addEventListener('scroll', updateActiveNav);
         updateActiveNav(); // Initial call
     }
     
@@ -269,58 +271,14 @@ document.addEventListener('DOMContentLoaded', async function() {
         });
     }
     
-    function initializeNavigation() {
-        const navLinks = document.querySelectorAll('.sticky-nav a');
-        
-        // Active navigation highlighting
-        function updateActiveNav() {
-            const sections = document.querySelectorAll('section, div[id]');
-            const scrollPos = window.scrollY + 100;
-            
-            sections.forEach(section => {
-                const top = section.offsetTop;
-                const bottom = top + section.offsetHeight;
-                const id = section.getAttribute('id');
-                
-                if (scrollPos >= top && scrollPos < bottom) {
-                    navLinks.forEach(link => {
-                        link.classList.remove('active');
-                        if (link.getAttribute('href') === `#${id}`) {
-                            link.classList.add('active');
-                        }
-                    });
-                }
-            });
-        }
-        
-        // Smooth scrolling for navigation links
-        navLinks.forEach(link => {
-            link.addEventListener('click', function(e) {
-                e.preventDefault();
-                const targetId = this.getAttribute('href').substring(1);
-                const targetSection = document.getElementById(targetId);
-                
-                if (targetSection) {
-                    targetSection.scrollIntoView({
-                        behavior: 'smooth',
-                        block: 'start'
-                    });
-                }
-            });
-        });
-        
-        // Update active navigation on scroll
-        window.addEventListener('scroll', updateActiveNav);
-        updateActiveNav(); // Initial call
-    }
-    
     // Scroll to Top Button functionality
     function initializeScrollToTop() {
         const scrollToTopBtn = document.getElementById('scroll-to-top');
+        const contentElement = document.querySelector('.content');
         
         // Show/hide button based on scroll position
         function toggleScrollButton() {
-            if (window.scrollY > 300) {
+            if (contentElement.scrollTop > 300) {
                 scrollToTopBtn.classList.add('visible');
             } else {
                 scrollToTopBtn.classList.remove('visible');
@@ -329,14 +287,14 @@ document.addEventListener('DOMContentLoaded', async function() {
         
         // Smooth scroll to top
         function scrollToTop() {
-            window.scrollTo({
+            contentElement.scrollTo({
                 top: 0,
                 behavior: 'smooth'
             });
         }
         
         // Event listeners
-        window.addEventListener('scroll', toggleScrollButton);
+        contentElement.addEventListener('scroll', toggleScrollButton);
         scrollToTopBtn.addEventListener('click', scrollToTop);
         
         // Initial check
