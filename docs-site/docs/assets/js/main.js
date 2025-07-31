@@ -21,6 +21,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     const searchInput = document.getElementById('search');
     const contentContainer = document.getElementById('documentation-content');
     const navigationList = document.getElementById('navigation-list');
+    const mobileNavigationList = document.getElementById('mobile-navigation-list');
     
     let allSections = [];
     let sectionsData = {};
@@ -187,7 +188,11 @@ document.addEventListener('DOMContentLoaded', async function() {
             }
         });
         
+        // Populate both desktop and mobile navigation
         navigationList.innerHTML = navHtml;
+        if (mobileNavigationList) {
+            mobileNavigationList.innerHTML = navHtml;
+        }
     }
 
     function initializeSearch() {
@@ -294,7 +299,10 @@ document.addEventListener('DOMContentLoaded', async function() {
     }
 
     function initializeNavigation() {
-        const navLinks = document.querySelectorAll('.mobile-nav-list a');
+        // Get navigation links from both desktop and mobile navigation
+        const desktopNavLinks = document.querySelectorAll('#navigation-list a');
+        const mobileNavLinks = document.querySelectorAll('#mobile-navigation-list a');
+        const allNavLinks = [...desktopNavLinks, ...mobileNavLinks];
         
         // Active navigation highlighting
         function updateActiveNav() {
@@ -304,7 +312,7 @@ document.addEventListener('DOMContentLoaded', async function() {
             const viewportHeight = contentElement.clientHeight;
             
             // Remove all active classes first
-            navLinks.forEach(link => link.classList.remove('active'));
+            allNavLinks.forEach(link => link.classList.remove('active'));
             
             let currentSection = null;
             let minDistance = Infinity;
@@ -336,15 +344,21 @@ document.addEventListener('DOMContentLoaded', async function() {
             
             // Highlight the current section
             if (currentSection) {
-                const activeLink = document.querySelector(`.mobile-nav-list a[href="#${currentSection}"]`);
-                if (activeLink) {
-                    activeLink.classList.add('active');
+                // Set active class on both desktop and mobile navigation links
+                const desktopActiveLink = document.querySelector(`#navigation-list a[href="#${currentSection}"]`);
+                const mobileActiveLink = document.querySelector(`#mobile-navigation-list a[href="#${currentSection}"]`);
+                
+                if (desktopActiveLink) {
+                    desktopActiveLink.classList.add('active');
+                }
+                if (mobileActiveLink) {
+                    mobileActiveLink.classList.add('active');
                 }
             }
         }
         
         // Smooth scrolling for navigation links
-        navLinks.forEach(link => {
+        allNavLinks.forEach(link => {
             link.addEventListener('click', function(e) {
                 e.preventDefault();
                 const targetId = this.getAttribute('href').substring(1);
