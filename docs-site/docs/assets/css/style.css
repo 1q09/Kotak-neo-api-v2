@@ -368,8 +368,37 @@ section {
     .content {
         padding: 0 20px 20px 20px;
         max-width: 100%;
-        height: auto;
-        overflow-y: visible;
+        height: 100vh;
+        overflow-y: auto;
+    }
+    
+    /* Ensure search container stays sticky on mobile */
+    .search-container {
+        position: fixed !important;
+        top: 0 !important;
+        left: 0 !important;
+        right: 0 !important;
+        z-index: 100 !important;
+        margin: 0 !important;
+        padding: 15px 20px 10px 20px;
+        width: 100% !important;
+        box-sizing: border-box !important;
+    }
+    
+    /* Add top padding to content to compensate for fixed search */
+    .documentation-content {
+        padding-top: 70px !important;
+    }
+    
+    /* Additional mobile sticky fixes */
+    body {
+        height: 100vh !important;
+        overflow: hidden !important;
+    }
+    
+    .container {
+        height: 100vh !important;
+        overflow: hidden !important;
     }
     
     .sticky-nav {
@@ -868,6 +897,29 @@ pre code {
         right: 15px;
         width: 44px;
         height: 44px;
+    }
+    
+    /* Ensure search stays sticky on smaller mobile screens */
+    .search-container {
+        position: fixed !important;
+        top: 0 !important;
+        left: 0 !important;
+        right: 0 !important;
+        z-index: 101 !important;
+        margin: 0 !important;
+        padding: 12px 20px 8px 20px !important;
+        width: 100% !important;
+        box-sizing: border-box !important;
+    }
+    
+    .documentation-content {
+        padding-top: 65px !important;
+    }
+    
+    .content {
+        height: 100vh !important;
+        overflow-y: auto !important;
+        -webkit-overflow-scrolling: touch !important;
     }
 }
 
