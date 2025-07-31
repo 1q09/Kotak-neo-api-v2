@@ -114,6 +114,7 @@ document.addEventListener('DOMContentLoaded', async function() {
             // Display first section and hide loader
             contentContainer.innerHTML = allContentHtml;
             hljs.highlightAll();
+            initializeCodeCopy();
             hideLoadingIndicator();
             
             // Mark first section as loaded
@@ -135,6 +136,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                 // Update the DOM with new content
                 contentContainer.innerHTML = allContentHtml;
                 hljs.highlightAll();
+                initializeCodeCopy();
                 
                 // Mark section as loaded
                 loadedSections.add(section.id);
@@ -190,8 +192,11 @@ document.addEventListener('DOMContentLoaded', async function() {
 
     function initializeSearch() {
         searchInput.addEventListener('input', function() {
-            const searchTerm = this.value.toLowerCase();
+            const searchTerm = this.value.toLowerCase().trim();
             const sections = document.querySelectorAll('section, div[id]');
+            
+            // Clear previous highlights
+            clearSearchHighlights();
             
             sections.forEach(section => {
                 if (!section.id || section.id === 'loading' || section.id === 'error') {
@@ -199,7 +204,10 @@ document.addEventListener('DOMContentLoaded', async function() {
                 }
                 
                 const text = section.textContent.toLowerCase();
-                if (text.includes(searchTerm) || searchTerm === '') {
+                if (text.includes(searchTerm) && searchTerm !== '') {
+                    section.style.display = 'block';
+                    highlightSearchTerms(section, searchTerm);
+                } else if (searchTerm === '') {
                     section.style.display = 'block';
                 } else {
                     section.style.display = 'none';
@@ -207,30 +215,132 @@ document.addEventListener('DOMContentLoaded', async function() {
             });
         });
     }
+    
+    function clearSearchHighlights() {
+        const highlights = document.querySelectorAll('.search-highlight');
+        highlights.forEach(highlight => {
+            const parent = highlight.parentNode;
+            parent.insertBefore(document.createTextNode(highlight.textContent), highlight);
+            parent.removeChild(highlight);
+            parent.normalize();
+        });
+    }
+    
+    function highlightSearchTerms(element, searchTerm) {
+        const walker = document.createTreeWalker(
+            element,
+            NodeFilter.SHOW_TEXT,
+            {
+                acceptNode: function(node) {
+                    // Skip script, style, and already highlighted nodes
+                    const parent = node.parentNode;
+                    if (parent.tagName === 'SCRIPT' || 
+                        parent.tagName === 'STYLE' || 
+                        parent.classList.contains('search-highlight') ||
+                        parent.classList.contains('code-copy-btn')) {
+                        return NodeFilter.FILTER_REJECT;
+                    }
+                    return NodeFilter.FILTER_ACCEPT;
+                }
+            }
+        );
+        
+        const textNodes = [];
+        let node;
+        while (node = walker.nextNode()) {
+            textNodes.push(node);
+        }
+        
+        textNodes.forEach(textNode => {
+            const text = textNode.textContent;
+            const lowerText = text.toLowerCase();
+            const index = lowerText.indexOf(searchTerm);
+            
+            if (index !== -1) {
+                const beforeText = text.substring(0, index);
+                const matchText = text.substring(index, index + searchTerm.length);
+                const afterText = text.substring(index + searchTerm.length);
+                
+                const fragment = document.createDocumentFragment();
+                
+                if (beforeText) {
+                    fragment.appendChild(document.createTextNode(beforeText));
+                }
+                
+                const highlight = document.createElement('span');
+                highlight.className = 'search-highlight';
+                highlight.textContent = matchText;
+                fragment.appendChild(highlight);
+                
+                if (afterText) {
+                    const afterNode = document.createTextNode(afterText);
+                    fragment.appendChild(afterNode);
+                    
+                    // Recursively highlight remaining occurrences in the after text
+                    const tempDiv = document.createElement('div');
+                    tempDiv.appendChild(afterNode.cloneNode(true));
+                    if (tempDiv.textContent.toLowerCase().indexOf(searchTerm) !== -1) {
+                        highlightSearchTerms(tempDiv, searchTerm);
+                        fragment.removeChild(fragment.lastChild);
+                        while (tempDiv.firstChild) {
+                            fragment.appendChild(tempDiv.firstChild);
+                        }
+                    }
+                }
+                
+                textNode.parentNode.replaceChild(fragment, textNode);
+            }
+        });
+    }
 
     function initializeNavigation() {
-        const navLinks = document.querySelectorAll('.sticky-nav a');
+        const navLinks = document.querySelectorAll('.mobile-nav-list a');
         
         // Active navigation highlighting
         function updateActiveNav() {
             const sections = document.querySelectorAll('section, div[id]');
             const contentElement = document.querySelector('.content');
-            const scrollPos = contentElement.scrollTop + 100;
+            const scrollPos = contentElement.scrollTop;
+            const viewportHeight = contentElement.clientHeight;
+            
+            // Remove all active classes first
+            navLinks.forEach(link => link.classList.remove('active'));
+            
+            let currentSection = null;
+            let minDistance = Infinity;
             
             sections.forEach(section => {
-                const top = section.offsetTop;
-                const bottom = top + section.offsetHeight;
+                const rect = section.getBoundingClientRect();
+                const contentRect = contentElement.getBoundingClientRect();
+                
+                // Calculate position relative to content container
+                const sectionTop = rect.top - contentRect.top + scrollPos;
+                const sectionBottom = sectionTop + section.offsetHeight;
                 const id = section.getAttribute('id');
                 
-                if (scrollPos >= top && scrollPos < bottom) {
-                    navLinks.forEach(link => {
-                        link.classList.remove('active');
-                        if (link.getAttribute('href') === `#${id}`) {
-                            link.classList.add('active');
-                        }
-                    });
+                if (!id) return;
+                
+                // Check if section is visible in viewport
+                const isVisible = (sectionTop <= scrollPos + viewportHeight * 0.3) && 
+                                 (sectionBottom >= scrollPos);
+                
+                if (isVisible) {
+                    // Find the section closest to the top of the viewport
+                    const distanceFromTop = Math.abs(sectionTop - scrollPos);
+                    if (distanceFromTop < minDistance) {
+                        minDistance = distanceFromTop;
+                        currentSection = id;
+                    }
                 }
             });
+            
+            // Highlight the current section
+            if (currentSection) {
+                const activeLink = document.querySelector(`.mobile-nav-list a[href="#${currentSection}"]`);
+                if (activeLink) {
+                    activeLink.classList.add('active');
+                }
+            }
         }
         
         // Smooth scrolling for navigation links
@@ -239,11 +349,17 @@ document.addEventListener('DOMContentLoaded', async function() {
                 e.preventDefault();
                 const targetId = this.getAttribute('href').substring(1);
                 const targetSection = document.getElementById(targetId);
+                const contentElement = document.querySelector('.content');
                 
-                if (targetSection) {
-                    targetSection.scrollIntoView({
-                        behavior: 'smooth',
-                        block: 'start'
+                if (targetSection && contentElement) {
+                    // Calculate position relative to content container
+                    const targetRect = targetSection.getBoundingClientRect();
+                    const contentRect = contentElement.getBoundingClientRect();
+                    const scrollPosition = targetRect.top - contentRect.top + contentElement.scrollTop - 20; // 20px offset
+                    
+                    contentElement.scrollTo({
+                        top: scrollPosition,
+                        behavior: 'smooth'
                     });
                 }
             });
@@ -253,22 +369,6 @@ document.addEventListener('DOMContentLoaded', async function() {
         const contentElement = document.querySelector('.content');
         contentElement.addEventListener('scroll', updateActiveNav);
         updateActiveNav(); // Initial call
-    }
-    
-    function initializeSearch() {
-        searchInput.addEventListener('input', function() {
-            const searchTerm = this.value.toLowerCase();
-            const sections = document.querySelectorAll('section, div[id]');
-            
-            sections.forEach(section => {
-                const text = section.textContent.toLowerCase();
-                if (text.includes(searchTerm) || searchTerm === '') {
-                    section.style.display = 'block';
-                } else {
-                    section.style.display = 'none';
-                }
-            });
-        });
     }
     
     // Scroll to Top Button functionality
@@ -469,4 +569,87 @@ document.addEventListener('DOMContentLoaded', async function() {
             console.error(`Invalid theme: ${theme}. Valid options are: ${validThemes.join(', ')}`);
         }
     };
+    
+    // Copy to Clipboard functionality for code blocks
+    function initializeCodeCopy() {
+        // Add copy buttons to all pre elements
+        const preElements = document.querySelectorAll('pre');
+        
+        preElements.forEach(pre => {
+            // Skip if copy button already exists
+            if (pre.querySelector('.code-copy-btn')) return;
+            
+            const copyBtn = document.createElement('button');
+            copyBtn.className = 'code-copy-btn';
+            copyBtn.innerHTML = `
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2" stroke="currentColor" stroke-width="2" fill="none"/>
+                    <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" stroke="currentColor" stroke-width="2" fill="none"/>
+                </svg>
+            `;
+            copyBtn.title = 'Copy code to clipboard';
+            
+            copyBtn.addEventListener('click', async () => {
+                const code = pre.querySelector('code') || pre;
+                const textToCopy = code.textContent || code.innerText;
+                
+                try {
+                    await navigator.clipboard.writeText(textToCopy);
+                    
+                    // Show success feedback
+                    copyBtn.innerHTML = `
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2" fill="none"/>
+                        </svg>
+                    `;
+                    copyBtn.classList.add('copied');
+                    
+                    // Reset after 2 seconds
+                    setTimeout(() => {
+                        copyBtn.innerHTML = `
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <rect x="9" y="9" width="13" height="13" rx="2" ry="2" stroke="currentColor" stroke-width="2" fill="none"/>
+                                <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" stroke="currentColor" stroke-width="2" fill="none"/>
+                            </svg>
+                        `;
+                        copyBtn.classList.remove('copied');
+                    }, 2000);
+                    
+                } catch (err) {
+                    console.error('Failed to copy text: ', err);
+                    
+                    // Fallback for older browsers
+                    const textArea = document.createElement('textarea');
+                    textArea.value = textToCopy;
+                    document.body.appendChild(textArea);
+                    textArea.select();
+                    document.execCommand('copy');
+                    document.body.removeChild(textArea);
+                    
+                    // Show success feedback
+                    copyBtn.innerHTML = `
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2" fill="none"/>
+                        </svg>
+                    `;
+                    copyBtn.classList.add('copied');
+                    
+                    setTimeout(() => {
+                        copyBtn.innerHTML = `
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <rect x="9" y="9" width="13" height="13" rx="2" ry="2" stroke="currentColor" stroke-width="2" fill="none"/>
+                                <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" stroke="currentColor" stroke-width="2" fill="none"/>
+                            </svg>
+                        `;
+                        copyBtn.classList.remove('copied');
+                    }, 2000);
+                }
+            });
+            
+            pre.appendChild(copyBtn);
+        });
+    }
+    
+    // Initialize copy functionality when content loads
+    initializeCodeCopy();
 });
