@@ -12,13 +12,6 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
 </head>
 <body>
-    <!-- Mobile Navigation Toggle Button -->
-    <button id="mobile-nav-toggle" class="mobile-nav-toggle" aria-label="Open navigation">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M3 12H21M3 6H21M3 18H21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-    </button>
-
     <!-- Mobile Navigation Overlay -->
     <div id="mobile-nav-overlay" class="mobile-nav-overlay"></div>
 
@@ -43,6 +36,11 @@
         <main class="content">
             <div class="search-container">
                 <input type="text" id="search" placeholder="Search documentation">
+                <button id="mobile-nav-toggle" class="mobile-nav-toggle" aria-label="Open navigation">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M3 12H21M3 6H21M3 18H21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </button>
             </div>
             
             <div class="documentation-content" id="documentation-content">
