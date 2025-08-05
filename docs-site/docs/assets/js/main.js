@@ -58,7 +58,6 @@ document.addEventListener('DOMContentLoaded', async function() {
         
         // Initialize functionality
         initializeSearch();
-        initializeNavigation();
         
     } catch (error) {
         console.error('Error loading content:', error);
@@ -193,15 +192,43 @@ document.addEventListener('DOMContentLoaded', async function() {
         if (mobileNavigationList) {
             mobileNavigationList.innerHTML = navHtml;
         }
+        
+        // Initialize navigation click handlers after navigation is generated
+        initializeNavigation();
     }
 
     function initializeSearch() {
+        const searchResultsCount = document.getElementById('search-results-count');
+        const searchNavigationHint = document.getElementById('search-navigation-hint');
+        let currentMatchIndex = -1;
+        let totalHighlights = [];
+        
         searchInput.addEventListener('input', function() {
             const searchTerm = this.value.toLowerCase().trim();
             const sections = document.querySelectorAll('section, div[id]');
+            let totalMatches = 0;
+            let sectionsWithMatches = 0;
+            
+            // Reset navigation state
+            currentMatchIndex = -1;
+            totalHighlights = [];
             
             // Clear previous highlights
             clearSearchHighlights();
+            
+            if (searchTerm === '') {
+                // Show all sections when search is empty
+                sections.forEach(section => {
+                    if (!section.id || section.id === 'loading' || section.id === 'error') {
+                        return;
+                    }
+                    section.style.display = 'block';
+                });
+                searchResultsCount.textContent = '';
+                searchResultsCount.classList.remove('visible');
+                searchNavigationHint.textContent = '';
+                return;
+            }
             
             sections.forEach(section => {
                 if (!section.id || section.id === 'loading' || section.id === 'error') {
@@ -209,16 +236,122 @@ document.addEventListener('DOMContentLoaded', async function() {
                 }
                 
                 const text = section.textContent.toLowerCase();
-                if (text.includes(searchTerm) && searchTerm !== '') {
+                const matches = countMatches(text, searchTerm);
+                
+                if (matches > 0) {
                     section.style.display = 'block';
                     highlightSearchTerms(section, searchTerm);
-                } else if (searchTerm === '') {
-                    section.style.display = 'block';
+                    totalMatches += matches;
+                    sectionsWithMatches++;
                 } else {
                     section.style.display = 'none';
                 }
             });
+            
+            // Collect all highlights for navigation
+            totalHighlights = Array.from(document.querySelectorAll('.search-highlight'));
+            
+            // Update search results counter
+            if (totalMatches > 0) {
+                const matchText = totalMatches === 1 ? 'match' : 'matches';
+                const sectionText = sectionsWithMatches === 1 ? 'section' : 'sections';
+                searchResultsCount.textContent = `${totalMatches} ${matchText} in ${sectionsWithMatches} ${sectionText}`;
+                searchResultsCount.classList.add('visible');
+                
+                // Show navigation hint
+                if (totalHighlights.length > 1) {
+                    searchNavigationHint.textContent = 'Press Enter to navigate matches, Shift+Enter for previous';
+                } else {
+                    searchNavigationHint.textContent = '';
+                }
+                
+                // Highlight first match if there are results
+                if (totalHighlights.length > 0) {
+                    currentMatchIndex = 0;
+                    highlightCurrentMatch();
+                }
+            } else {
+                searchResultsCount.textContent = 'No matches found';
+                searchResultsCount.classList.add('visible');
+                searchNavigationHint.textContent = '';
+            }
         });
+        
+        // Add keyboard navigation
+        searchInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                
+                if (totalHighlights.length === 0) return;
+                
+                if (e.shiftKey) {
+                    // Shift+Enter: Previous match
+                    navigateToPreviousMatch();
+                } else {
+                    // Enter: Next match
+                    navigateToNextMatch();
+                }
+            }
+        });
+        
+        function navigateToNextMatch() {
+            if (totalHighlights.length === 0) return;
+            
+            currentMatchIndex = (currentMatchIndex + 1) % totalHighlights.length;
+            highlightCurrentMatch();
+            scrollToCurrentMatch();
+        }
+        
+        function navigateToPreviousMatch() {
+            if (totalHighlights.length === 0) return;
+            
+            currentMatchIndex = currentMatchIndex <= 0 ? totalHighlights.length - 1 : currentMatchIndex - 1;
+            highlightCurrentMatch();
+            scrollToCurrentMatch();
+        }
+        
+        function highlightCurrentMatch() {
+            // Remove current highlighting from all matches
+            totalHighlights.forEach(highlight => highlight.classList.remove('current'));
+            
+            // Add current highlighting to active match
+            if (currentMatchIndex >= 0 && currentMatchIndex < totalHighlights.length) {
+                totalHighlights[currentMatchIndex].classList.add('current');
+                
+                // Update counter to show current position
+                const matchText = totalHighlights.length === 1 ? 'match' : 'matches';
+                const sectionsWithMatches = new Set(totalHighlights.map(h => h.closest('section, div[id]'))).size;
+                const sectionText = sectionsWithMatches === 1 ? 'section' : 'sections';
+                searchResultsCount.textContent = `${currentMatchIndex + 1} of ${totalHighlights.length} ${matchText} in ${sectionsWithMatches} ${sectionText}`;
+            }
+        }
+        
+        function scrollToCurrentMatch() {
+            if (currentMatchIndex >= 0 && currentMatchIndex < totalHighlights.length) {
+                const currentHighlight = totalHighlights[currentMatchIndex];
+                const contentElement = document.querySelector('.content');
+                
+                // Calculate position relative to content container
+                const highlightRect = currentHighlight.getBoundingClientRect();
+                const contentRect = contentElement.getBoundingClientRect();
+                const scrollPosition = highlightRect.top - contentRect.top + contentElement.scrollTop - 100; // 100px offset for better visibility
+                
+                contentElement.scrollTo({
+                    top: scrollPosition,
+                    behavior: 'smooth'
+                });
+            }
+        }
+    }
+    
+    // Helper function to count all occurrences of search term in text
+    function countMatches(text, searchTerm) {
+        if (!searchTerm) return 0;
+        
+        // Use regex to find all matches (case insensitive)
+        const regex = new RegExp(searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
+        const matches = text.match(regex);
+        return matches ? matches.length : 0;
     }
     
     function clearSearchHighlights() {
@@ -304,63 +437,30 @@ document.addEventListener('DOMContentLoaded', async function() {
         const mobileNavLinks = document.querySelectorAll('#mobile-navigation-list a');
         const allNavLinks = [...desktopNavLinks, ...mobileNavLinks];
         
-        // Active navigation highlighting
-        function updateActiveNav() {
-            const sections = document.querySelectorAll('section, div[id]');
-            const contentElement = document.querySelector('.content');
-            const scrollPos = contentElement.scrollTop;
-            const viewportHeight = contentElement.clientHeight;
-            
-            // Remove all active classes first
-            allNavLinks.forEach(link => link.classList.remove('active'));
-            
-            let currentSection = null;
-            let minDistance = Infinity;
-            
-            sections.forEach(section => {
-                const rect = section.getBoundingClientRect();
-                const contentRect = contentElement.getBoundingClientRect();
-                
-                // Calculate position relative to content container
-                const sectionTop = rect.top - contentRect.top + scrollPos;
-                const sectionBottom = sectionTop + section.offsetHeight;
-                const id = section.getAttribute('id');
-                
-                if (!id) return;
-                
-                // Check if section is visible in viewport
-                const isVisible = (sectionTop <= scrollPos + viewportHeight * 0.3) && 
-                                 (sectionBottom >= scrollPos);
-                
-                if (isVisible) {
-                    // Find the section closest to the top of the viewport
-                    const distanceFromTop = Math.abs(sectionTop - scrollPos);
-                    if (distanceFromTop < minDistance) {
-                        minDistance = distanceFromTop;
-                        currentSection = id;
-                    }
-                }
-            });
-            
-            // Highlight the current section
-            if (currentSection) {
-                // Set active class on both desktop and mobile navigation links
-                const desktopActiveLink = document.querySelector(`#navigation-list a[href="#${currentSection}"]`);
-                const mobileActiveLink = document.querySelector(`#mobile-navigation-list a[href="#${currentSection}"]`);
-                
-                if (desktopActiveLink) {
-                    desktopActiveLink.classList.add('active');
-                }
-                if (mobileActiveLink) {
-                    mobileActiveLink.classList.add('active');
-                }
-            }
-        }
-        
-        // Smooth scrolling for navigation links
-        allNavLinks.forEach(link => {
+        // Smooth scrolling for navigation links with click highlighting
+        allNavLinks.forEach((link, index) => {
             link.addEventListener('click', function(e) {
                 e.preventDefault();
+                
+                // Check if this is a mobile navigation link and close mobile nav
+                const isMobileLink = this.closest('#mobile-navigation-list');
+                if (isMobileLink) {
+                    // Close mobile navigation
+                    const overlay = document.getElementById('mobile-nav-overlay');
+                    const drawer = document.getElementById('mobile-nav-drawer');
+                    if (overlay) overlay.classList.remove('active');
+                    if (drawer) drawer.classList.remove('active');
+                    document.body.classList.remove('mobile-nav-open');
+                }
+                
+                // Remove active class from all navigation links
+                allNavLinks.forEach(navLink => {
+                    navLink.classList.remove('active');
+                });
+                
+                // Add active class to clicked link
+                this.classList.add('active');
+                
                 const targetId = this.getAttribute('href').substring(1);
                 const targetSection = document.getElementById(targetId);
                 const contentElement = document.querySelector('.content');
@@ -371,18 +471,17 @@ document.addEventListener('DOMContentLoaded', async function() {
                     const contentRect = contentElement.getBoundingClientRect();
                     const scrollPosition = targetRect.top - contentRect.top + contentElement.scrollTop - 20; // 20px offset
                     
-                    contentElement.scrollTo({
-                        top: scrollPosition,
-                        behavior: 'smooth'
-                    });
+                    const scrollDelay = isMobileLink ? 300 : 0; // Delay for mobile to allow drawer to close
+                    
+                    setTimeout(() => {
+                        contentElement.scrollTo({
+                            top: scrollPosition,
+                            behavior: 'smooth'
+                        });
+                    }, scrollDelay);
                 }
             });
         });
-        
-        // Update active navigation on scroll
-        const contentElement = document.querySelector('.content');
-        contentElement.addEventListener('scroll', updateActiveNav);
-        updateActiveNav(); // Initial call
     }
     
     // Scroll to Top Button functionality
@@ -428,29 +527,8 @@ document.addEventListener('DOMContentLoaded', async function() {
             const desktopNavList = document.getElementById('navigation-list');
             if (desktopNavList) {
                 mobileNavList.innerHTML = desktopNavList.innerHTML;
-                
-                // Add click handlers for mobile nav links
-                const mobileLinks = mobileNavList.querySelectorAll('a');
-                mobileLinks.forEach(link => {
-                    link.addEventListener('click', (e) => {
-                        e.preventDefault();
-                        const targetId = link.getAttribute('href').substring(1);
-                        const targetSection = document.getElementById(targetId);
-                        
-                        if (targetSection) {
-                            // Close mobile navigation
-                            closeMobileNav();
-                            
-                            // Scroll to section after a brief delay
-                            setTimeout(() => {
-                                targetSection.scrollIntoView({
-                                    behavior: 'smooth',
-                                    block: 'start'
-                                });
-                            }, 300);
-                        }
-                    });
-                });
+                // Re-initialize navigation to attach click handlers to new mobile links
+                initializeNavigation();
             }
         }
 
