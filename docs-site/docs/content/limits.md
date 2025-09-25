@@ -6,33 +6,30 @@ The **Limits API** allows you to query real-time available limits, margins, coll
 
 ## 2. API Endpoint
 
-`POST <Base URL>/Orders/2.0/quick/user/limits`
+`POST <Base URL>/quick/user/limits`
 
-*Replace `<Base URL>` with your Kotak Securities environment’s root.*
+> *Replace `<Base URL>` with the relevant Kotak environment base URL provided in response from /tradeApiValidate api.*
+> 
 
 ## 3. Headers
 
 | Name | Type | Description |
 | --- | --- | --- |
 | accept | string | `application/json` |
-| Sid | string | Session ID obtained after login |
-| Auth | string | Trade token generated after login  |
-| neo-fin-key | string | Client key example “neotradeapi” |
+| Sid | string | session sid generated on login |
+| Auth | string | session token generated on login |
+| neo-fin-key | string | static value: neotradeapi |
 | Content-Type | string | `application/x-www-form-urlencoded` |
-| Authorization | string | API Token from NEO dashboard ( no "Bearer" prefix) |
 
 ## 4. Request
 
 **Example Request:**
 
 ```jsx
-curl --location '<Base URL>/Orders/2.0/quick/user/limits' \
---header 'accept: application/json' \
---header 'Sid: ******-****-****-****-**********' \
---header 'Auth: ***********' \
---header 'neo-fin-key: neotradeapi' \
---header 'Content-Type: application/x-www-form-urlencoded' \
---header 'Authorization: ************' \
+curl --location '<Base URL>/quick/user/limits' \
+ -H "Auth: <session_token>" \
+  -H "Sid: <session_sid>" \
+  -H "neo-fin-key: neotradeapi"
 --data-urlencode 'jData={"seg":"ALL","exch":"ALL","prod":"ALL"}'
 ```
 
@@ -108,16 +105,6 @@ curl --location '<Base URL>/Orders/2.0/quick/user/limits' \
 | stat | string | "Not_Ok" for errors |
 | emsg | string | Error message in English |
 | stCode | int | Error code as below |
-
-**Common Error Codes**
-
-| Code | Description |
-| --- | --- |
-| 1002 | Invalid input parameters |
-| 1003 | Invalid or expired session |
-| 1005 | Internal server error |
-| 429 | Too many requests |
-| 500 | Unexpected server error |
 
 ## 6. Notes
 

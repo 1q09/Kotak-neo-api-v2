@@ -162,11 +162,15 @@ document.addEventListener('DOMContentLoaded', async function() {
         const sectionContent = await loadMarkdownFile(section.file);
         sectionHtml = `<section id="${section.id}">${sectionContent}`;
         
-        // Load subsections if they exist
+        // Load subsections if they exist and have separate files
         if (section.subsections) {
             for (const subsection of section.subsections) {
-                const subContent = await loadMarkdownFile(subsection.file);
-                sectionHtml += `<div id="${subsection.id}">${subContent}</div>`;
+                // Only load subsection content if it has a separate file
+                if (subsection.file) {
+                    const subContent = await loadMarkdownFile(subsection.file);
+                    sectionHtml += `<div id="${subsection.id}">${subContent}</div>`;
+                }
+                // If no file is specified, the subsection is just an anchor within the main section
             }
         }
         
@@ -462,12 +466,12 @@ document.addEventListener('DOMContentLoaded', async function() {
                 this.classList.add('active');
                 
                 const targetId = this.getAttribute('href').substring(1);
-                const targetSection = document.getElementById(targetId);
+                const targetElement = document.getElementById(targetId);
                 const contentElement = document.querySelector('.content');
                 
-                if (targetSection && contentElement) {
+                if (targetElement && contentElement) {
                     // Calculate position relative to content container
-                    const targetRect = targetSection.getBoundingClientRect();
+                    const targetRect = targetElement.getBoundingClientRect();
                     const contentRect = contentElement.getBoundingClientRect();
                     const scrollPosition = targetRect.top - contentRect.top + contentElement.scrollTop - 20; // 20px offset
                     
@@ -479,6 +483,21 @@ document.addEventListener('DOMContentLoaded', async function() {
                             behavior: 'smooth'
                         });
                     }, scrollDelay);
+                } else {
+                    // If target element not found, try to find it by waiting for content to load
+                    setTimeout(() => {
+                        const delayedTarget = document.getElementById(targetId);
+                        if (delayedTarget && contentElement) {
+                            const targetRect = delayedTarget.getBoundingClientRect();
+                            const contentRect = contentElement.getBoundingClientRect();
+                            const scrollPosition = targetRect.top - contentRect.top + contentElement.scrollTop - 20;
+                            
+                            contentElement.scrollTo({
+                                top: scrollPosition,
+                                behavior: 'smooth'
+                            });
+                        }
+                    }, 500); // Wait 500ms for content to fully load
                 }
             });
         });

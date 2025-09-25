@@ -2,16 +2,28 @@
 
 ## **Overview**
 
-The **Login with TOTP** authentication for Kotak Securities Trade API allows secure and automated user authentication by leveraging Time-based One-Time Passwords (TOTP). This is a two-step process:
+The **Login with TOTP** authentication for Kotak Securities Trade API allows secure and automated user authentication by leveraging Time-based One-Time Passwords (TOTP). This is a three-step process:
 
-1. **Step 1:** Validate the user's credentials and TOTP to receive a session token and view token.
-2. **Step 2:** Use the session information and MPIN to complete the login and receive a trade token.
+1. **Step 1**: Register for TOTP via NEO (one time process)
+2. **Step 2:** Validate the user's credentials and TOTP to receive a session token and view token.
+3. **Step 3:** Use the session information and MPIN to complete the login and receive a trade token.
 
 Below is comprehensive, user-friendly documentation for both steps.
 
-## All endpoints below use the following **Base URL**:`<Base URL>/`
+## Step 1: Register for TOTP
 
-## Step 1: Login with TOTP
+> TOTP stands for *Time-based One-Time Password*. Unlike SMS OTP, which is sent to your phone, a TOTP is generated every **30 seconds** in an authenticator app (e.g., Google Authenticator, Microsoft Authenticator).
+> 
+1. On **API Dashboard**, click **TOTP Registration**.
+2. Verify with your **mobile number, OTP, and client code**.
+3. **Scan QR code** with Google/Microsoft Authenticator (application can be downloaded from playstore/appstore).
+4. Enter the generated **TOTP**.
+5. Confirm **“TOTP successfully registered”**
+
+## Step 2: Login with TOTP
+
+> API Access Token is issued from the NEO App. Go to **Invest → Trade API**, create an app under **Your Applications**, and copy the token shown. This token is your **access token**, and must be passed in the `Authorization` header of the Login APIs.
+> 
 
 ## 1. Introduction
 
@@ -20,39 +32,32 @@ Authenticate your account using mobile number, UCC, and TOTP. On success, you re
 ## 2. API Endpoint
 
 ```bash
-POST <Base URL>/login/1.0/login/v6/totp/login
+POST https://mis.kotaksecurities.com/login/1.0/tradeApiLogin
 ```
 
 ## 3. Headers
 
 | Name | Type | Description |
 | --- | --- | --- |
-| Authorization | string | Token provided in your NEO API dashboard (not prefixed by "Bearer") |
-| neo-fin-key | string | Client key for Neo API, ex: neotradeapi |
+| Authorization | string | Token provided in your NEO API dashboard - use plain token |
+| neo-fin-key | string | static value: neotradeapi |
 | Content-Type | string | Always `application/json` |
 
 ## 4. Request Body
 
-## Example Request
+## Example curl Request
 
-```bash
-curl --location '<Base URL>/login/1.0/login/v6/totp/login' \
---header 'Authorization: xxxxx-your-neo-token-xxxx' \
---header 'neo-fin-key: neotradeapi' \
---header 'Content-Type: application/json' \
---data '{
-    "mobileNumber": "+91*******93",
-    "totp": "******"
-}'
-```
+```jsx
+curl -X POST "https://mis.kotaksecurities.com/login/1.0/tradeApiLogin" \
+  -H "Authorization: <access_token>" \
+  -H "neo-fin-key: neotradeapi" \
+  -H "Content-Type: application/json" \
+  -d '{
+        "mobileNumber": "<+91XXXXXXXXXX>",
+        "ucc": "<client_code>",
+        "totp": "<6_digit_totp>"
+      }'
 
-**Example Request Body (JSON):**
-
-```json
-{
-    "mobileNumber": "+91*******93",
-    "totp": "******"
-}
 ```
 
 | Name | Type | Description |
@@ -67,7 +72,15 @@ curl --location '<Base URL>/login/1.0/login/v6/totp/login' \
 
 ```json
 {
-    "data": {…}
+    "data": {
+        "token": "eyJhbGciOiJ......",
+        "sid": "******-****-****-****-**********",
+        "rid": "******-****-****-****-**********",
+        "kType": "View",
+        "status": "success",
+        "greetingName": "*****",
+        // other fields as described in common response table
+    }
 }
 ```
 
@@ -76,11 +89,12 @@ curl --location '<Base URL>/login/1.0/login/v6/totp/login' \
 ```json
 {
     "status": "error",
+    "message": "Invalid credentials or TOTP.",
     "errorCode": "401"
 }
 ```
 
-## Step 2: Validate MPIN (Trading Token Generation)
+## Step 3: Validate MPIN (Trading Token Generation)
 
 ## 1. Introduction
 
@@ -89,17 +103,17 @@ Complete authentication by providing your 6-digit MPIN. You'll receive a trading
 ## 2. API Endpoint
 
 ```jsx
-POST <Base URL>/login/1.0/login/v6/totp/validate
+POST https://mis.kotaksecurities.com/login/1.0/tradeApiValidate
 ```
 
 ## 3. Headers
 
 | Name | Type | Description |
 | --- | --- | --- |
-| Authorization | string | Token provided in your NEO API dashboard (not prefixed by "Bearer") |
-| neo-fin-key | string | Client key for Neo API, available in your NEO app |
+| Authorization | string | Token provided in your NEO API dashboard - use plain token |
+| neo-fin-key | string | static value: neotradeapi |
 | Content-Type | string | Always `application/json` |
-| sid | string | Session ID received from Step 1 (`sid` in response) |
+| sid | string | view sid received from Step 1 (`sid` in response) |
 | Auth | string | View token received from Step 1 (`token` in response) |
 
 ## 4. Request Body
@@ -107,36 +121,44 @@ POST <Base URL>/login/1.0/login/v6/totp/validate
 **Example Request:**
 
 ```jsx
-curl --location '<Base URL>/login/1.0/login/v6/totp/validate' \
---header 'Authorization: xxxxx-your-neo-token-xxxx' \
---header 'neo-fin-key: neotradeapi' \
---header 'Content-Type: application/json' \
---header 'sid: ******-****-****-****-**********' \
---header 'Auth: eyJhbGciOiJ...<masked>...' \
---data '{
-    "mpin": "******"
-}'
-```
+curl -X POST "https://mis.kotaksecurities.com/login/1.0/tradeApiValidate" \
+  -H "Authorization: <access_token>" \
+  -H "neo-fin-key: neotradeapi" \
+  -H "sid: <viewSid_from_previous_step>" \
+  -H "Auth: <viewToken_from_previous_step>" \
+  -H "Content-Type: application/json" \
+  -d '{
+        "mpin": "<mpin>"
+      }'
 
-**Example Request Body (JSON):**
-
-```jsx
-{
-    "mpin": "******"
-}
 ```
 
 | Name | Type | Description |
 | --- | --- | --- |
-| mpin | string | User's 6-digit MPIN |
+| mpin | string | User’s 6-digit MPIN |
 
 ## 5. Response
+
+📌 **Response** gives you:
+
+- `baseUrl` (use it for **all** post-login APIs)
+- token  = **session token → used in headers as “Auth” for all successive APIs**
+- `Sid` = **session sid**
 
 **Success Example:**
 
 ```json
 {
-    "data": {…}
+    "data": {
+        "token": "eyJhbGciOiJ......",
+        "sid": "******-****-****-****-**********",
+        "rid": "******-****-****-****-**********",
+        "baseUrl": "https://cis.kotaksecurities.com",
+        "kType": "Trade",
+        "status": "success",
+        "greetingName": "*****",
+        ...
+    }
 }
 ```
 
@@ -145,6 +167,7 @@ curl --location '<Base URL>/login/1.0/login/v6/totp/validate' \
 ```json
 {
     "status": "error",
+    "message": "Invalid MPIN.",
     "errorCode": "401"
 }
 ```
@@ -155,9 +178,10 @@ Both Step 1 and Step 2 return a `data` object with many similarities.
 
 | Name | Type | Description & Possible Values |
 | --- | --- | --- |
-| token | string | JWT token. "View" token for Step 1 (`kType="View"`), "Trade" token for Step 2 (`kType="Trade"`). |
-| sid | string | Session ID  |
+| **token** | **string** | **JWT token. "View" token for Step 1 (`kType="View"`), "Trade" token for Step 2 (`kType="Trade"`).** |
+| **sid** | **string** | **Session ID**  |
 | rid | string | Request ID for tracking  |
+| **baseUrl** | **string** | **returns base url which is to be used post login** |
 | hsServerId | string | Server ID. Usually empty. |
 | isUserPwdExpired | boolean | Indicates if user's password has expired. |
 | ucc | string | Unique Client Code (masked). |
@@ -169,3 +193,32 @@ Both Step 1 and Step 2 return a `data` object with many similarities.
 | mfAccess | integer | Mutual Fund access: `1` means active |
 | dataCenterMap | object | Mapping data for centers (can be null) |
 | dormancyStatus | string | Account dormancy status, e.g., `A` |
+| asbaStatus | string | ASBA status (usually empty) |
+| clientType | string | Client type, e.g., `RI` |
+| isNRI | boolean | If client is NRI (`true` or `false`) |
+| kId | string | PAN or similar identification (masked) |
+| kType | string | "View" for Step 1, "Trade" for Step 2 |
+| status | string | "success" for successful response, else error |
+| incRange | integer | Income range (numeric, optional) |
+| incUpdFlag | string | Income Update Flag (optional, usually blank) |
+| clientGroup | string | Client Group (optional, usually blank) |
+| kraStatus | string | KRA verification status (optional, blank) |
+| rcFlag | integer | Internal flag (numeric, optional) |
+
+## Error Codes
+
+| Code | Description |
+| --- | --- |
+| 401 | Unauthorized / Invalid credentials / TOTP / MPIN |
+| 422 | Invalid request parameters |
+| 500 | Internal Server Error |
+| 403 | Forbidden |
+
+**Notes:**
+
+- All tokens and IDs in sample responses are masked for illustration.
+- Use your actual values from APIs in production.
+- Handle all sensitive information (like tokens and MPINs) securely.
+- The Step 2 response `token` (where `kType` is `Trade`) is to be used as the authorization credential for trading APIs.
+
+If you need more endpoints documented or wish for tailored code samples, just let me know!

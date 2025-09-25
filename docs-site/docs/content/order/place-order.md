@@ -6,20 +6,19 @@ The **Place Order API** allows you to place buy or sell orders across all suppor
 
 ## 2. API Endpoint
 
-`POST <Base URL>/Orders/2.0/quick/order/rule/ms/place`
+`POST <Base URL>/quick/order/rule/ms/place`
 
-*Replace `<Base URL>` with the correct Kotak Securities environment URL.*
+*Replace `<Base URL>` with the relevant Kotak environment base URL provided in response from /tradeApiValidate api.*
 
 ## 3. Headers
 
 | Name | Type | Description |
 | --- | --- | --- |
 | accept | string | Should always be `application/json` |
-| Sid | string | Session ID obtained after login (masked: ******--****) |
-| Auth | string | Trade token generated after user login (masked) |
-| neo-fin-key | string | Client key as issued from your NEO dashboard |
+| Sid | string | session sid generated on login |
+| Auth | string | session token generated on login |
+| neo-fin-key | string | static value: neotradeapi |
 | Content-Type | string | Always `application/x-www-form-urlencoded` |
-| Authorization | string | API Token from NEO dashboard (masked, no "Bearer" prefix) |
 
 ## 4. Request Body
 
@@ -28,28 +27,27 @@ The request body is sent as a single field named `jData`, which is a stringified
 ## Example Request
 
 ```jsx
-curl --location '<Base URL>/Orders/2.0/quick/order/rule/ms/place' \
---header 'accept: application/json' \
---header 'Sid: ******-****-****-****-**********' \
---header 'Auth: ***********' \
---header 'neo-fin-key: neotradeapi' \
---header 'Content-Type: application/x-www-form-urlencoded' \
---header 'Authorization: ************' \
---data-urlencode 'jData={
-  "am":"NO",
-  "dq":"0",
-  "es":"nse_cm",
-  "mp":"0",
-  "pc":"MIS",
-  "pf":"N",
-  "pr":"0",
-  "pt":"L",
-  "qt":"1",
-  "rt":"DAY",
-  "tp":"0",
-  "ts":"ITBEES-EQ",
-  "tt":"B"
-}'
+curl -X POST "<baseUrl>/quick/order/rule/ms/place" \
+  -H "Auth: <session_token>" \
+  -H "Sid: <session_sid>" \
+  -H "neo-fin-key: neotradeapi" \
+  -H "Content-Type: application/x-www-form-urlencoded" \
+  --data-urlencode 'jData={
+    "am": "NO",
+    "dq": "0",
+    "es": "nse_cm",
+    "mp": "0",
+    "pc": "CNC",
+    "pf": "N",
+    "pr": "0",
+    "pt": "MKT",
+    "qt": "1",
+    "rt": "DAY",
+    "tp": "0",
+    "ts": "ITBEES-EQ",
+    "tt": "B"
+  }'
+
 ```
 
 ## Example Request Body (`jData`)
@@ -139,22 +137,6 @@ curl --location '<Base URL>/Orders/2.0/quick/order/rule/ms/place' \
 | stat | string | Status message, "Not_Ok" for errors |
 | emsg | string | Error message in plain English |
 | stCode | int | Error code (see below) |
-
-## Error Codes
-
-| Code | Description |
-| --- | --- |
-| 1002 | Invalid input parameters |
-| 1003 | Invalid or expired session |
-| 1004 | Insufficient funds or limits |
-| 1005 | Internal server error |
-| 1006 | Order could not be processed |
-| 1007 | Exchange not reachable |
-| 1008 | Market closed |
-| 1009 | Invalid trading symbol |
-| 1010 | Quantity not allowed / contract expired |
-| 429 | Too many requests (rate limited) |
-| 500 | Unexpected server error |
 
 ## **Tips & Notes**
 

@@ -1,6 +1,49 @@
 {
   "sections": [
     {
+      "id": "trade-api-faq",
+      "title": "Trade API FAQ",
+      "file": "content/trade-api-faq .md",
+      "subsections": [
+        {
+          "id": "tokens-authentication",
+          "title": "Tokens & Authentication"
+        },
+        {
+          "id": "login-baseurl",
+          "title": "Login & baseUrl"
+        },
+        {
+          "id": "headers-endpoint-usage",
+          "title": "Headers & Endpoint Usage"
+        },
+        {
+          "id": "totp-registration-troubleshooting",
+          "title": "TOTP Registration & Troubleshooting"
+        },
+        {
+          "id": "static-ip-family-mapping",
+          "title": "Static IP & Family Mapping"
+        },
+        {
+          "id": "api-changes",
+          "title": "API Changes"
+        },
+        {
+          "id": "third-party-sdks",
+          "title": "Third-Party & SDKs"
+        },
+        {
+          "id": "rate-limits-cutover",
+          "title": "Rate Limits & Cutover"
+        },
+        {
+          "id": "error-faqs",
+          "title": "Error FAQs"
+        }
+      ]
+    },
+    {
       "id": "login-with-totp",
       "title": "Login with TOTP", 
       "file": "content/login-with-totp.md"
@@ -61,6 +104,16 @@
       "id": "margins",
       "title": "Margins",
       "file": "content/margins.md"
+    },
+    {
+      "id": "quotes",
+      "title": "Quotes",
+      "file": "content/Quotes.md"
+    },
+    {
+      "id": "curl-examples",
+      "title": "cURL Examples",
+      "file": "content/curl-examples.md"
     }
   ]
 }

@@ -1,117 +1,143 @@
 # Positions
 
-## Positions API
+## 1. Introduction
 
-### Overview
-The Positions API allows you to retrieve current day positions and overall positions for your trading account.
+The **Positions API** provides a consolidated view of your open and closed positions for the current trading day across all supported segments. This allows you to track real-time exposures, quantities bought/sold, and settlement data.
 
-### Endpoint
-`POST <Base_URL>/Portfolio/1.0/portfolio/v1/positions`
+## 2. API Endpoint
 
-### Headers
-- `Authorization: <your-api-token>`
-- `Content-Type: application/json`
+`GET <Base URL>/quick/user/positions`
 
-### Request Body
-```json
+> *Replace `<Base URL>` with the relevant Kotak environment base URL provided in response from /tradeApiValidate api.*
+> 
+
+## 3. Headers
+
+| Name | Type | Description |
+| --- | --- | --- |
+| accept | string | Should always be `application/json` |
+| Sid | string | session sid generated on login |
+| Auth | string | session token generated on login |
+| neo-fin-key | string | static value: neotradeapi |
+| Content-Type | string | Always `application/x-www-form-urlencoded` |
+
+## 4. Request
+
+**Example Request:**
+
+```jsx
+# Position Book
+curl -X GET "<baseUrl>/quick/user/positions" \
+  -H "Auth: <session_token>" \
+  -H "Sid: <session_sid>" \
+  -H "neo-fin-key: neotradeapi"
+```
+
+*No request body or query params required.*
+
+## 5. Response
+
+## Example Success Response (truncated, user-friendly)
+
+```jsx
 {
-    "Source": "N"
+  "stat": "Ok",
+  "stCode": 200,
+  "data": [
+    {
+      "actId": "******",
+      "prod": "CNC",
+      "exSeg": "nse_cm",
+      "trdSym": "AXISBANK-EQ",
+      "sym": "AXISBANK",
+      "qty": "9",
+      "buyAmt": "5862.90",
+      "sellAmt": "0.00",
+      "flBuyQty": "9",
+      "flSellQty": "0",
+      "brdLtQty": 1,
+      "posFlg": "true",
+      "sqrFlg": "Y",
+      "lotSz": "1",
+      "stkPrc": "0.00",
+      "hsUpTm": "2022/06/21 15:11:02"
+    },
+    {
+      "actId": "******",
+      "prod": "CNC",
+      "exSeg": "nse_cm",
+      "trdSym": "ITC-EQ",
+      "sym": "ITC",
+      "qty": "15",
+      "buyAmt": "4021.50",
+      "sellAmt": "0.00",
+      "flBuyQty": "15",
+      "flSellQty": "0",
+      "brdLtQty": 1,
+      "posFlg": "true",
+      "sqrFlg": "Y",
+      "lotSz": "1",
+      "stkPrc": "0.00",
+      "hsUpTm": "2022/06/21 15:11:02"
+    }
+  ]
 }
 ```
 
-### Response Format
-
-#### Success Response (200)
-```json
-{
-    "Status": "Success",
-    "message": "",
-    "errorCode": "",
-    "data": [
-        {
-            "tok": "11536",
-            "dname": "Reliance Industries Ltd",
-            "pos": "L",
-            "netQty": "10",
-            "avgPrice": "2450.50",
-            "ltp": "2465.00",
-            "pnl": "145.00",
-            "pnlPerc": "0.59",
-            "chg": "14.50",
-            "chgPerc": "0.59",
-            "es": "nse_cm",
-            "ts": "RELIANCE-EQ"
-        }
-    ]
-}
-```
-
-### Response Fields
+## 200 Response Fields
 
 | Field | Type | Description |
-|-------|------|-------------|
-| tok | string | Instrument token |
-| dname | string | Display name of the instrument |
-| pos | string | Position type (L=Long, S=Short) |
-| netQty | string | Net quantity of position |
-| avgPrice | string | Average price at which position was created |
-| ltp | string | Last traded price |
-| pnl | string | Profit and Loss value |
-| pnlPerc | string | Profit and Loss percentage |
-| chg | string | Price change from previous close |
-| chgPerc | string | Price change percentage |
-| es | string | Exchange segment |
-| ts | string | Trading symbol |
+| --- | --- | --- |
+| stat | string | Overall status ("Ok" for success) |
+| stCode | int | Status code (200 = success) |
+| data | array | Array of position objects (see below) |
 
-### Error Responses
+**Position Object (Key Fields):**
 
-#### 401 Unauthorized
-```json
+| Field | Type | Description |
+| --- | --- | --- |
+| actId | string | Account ID |
+| prod | string | Product code (e.g., CNC, MIS, NRML) |
+| exSeg | string | Exchange segment (e.g., nse_cm, bse_cm) |
+| trdSym | string | Trading symbol (e.g., AXISBANK-EQ) |
+| sym | string | Symbol name (e.g., AXISBANK) |
+| qty | string | Net position quantity |
+| buyAmt | string | Total buy amount |
+| sellAmt | string | Total sell amount |
+| flBuyQty | string | Filled buy quantity |
+| flSellQty | string | Filled sell quantity |
+| brdLtQty | int | Board lot quantity |
+| posFlg | string | Position flag ("true" if open position) |
+| sqrFlg | string | Square-off flag ("Y" = allowed) |
+| lotSz | string | Lot size |
+| stkPrc | string | Strike price (for derivatives) |
+| hsUpTm | string | Last updated time |
+
+*Other available fields*:
+
+cfBuyAmt, cfSellAmt, cfBuyQty, cfSellQty, multiplier, precision, expDt, genNum, genDen, prcNum, prcDen, optTp, type
+
+Note: cf as a prefix refers for carry forward
+
+## Example Error Response
+
+```jsx
 {
-    "Status": "Failed",
-    "message": "Invalid or expired token",
-    "errorCode": "401"
+  "stat": "Not_Ok",
+  "emsg": "Invalid session",
+  "stCode": 1003
 }
 ```
 
-#### 403 Forbidden
-```json
-{
-    "Status": "Failed", 
-    "message": "Insufficient privileges",
-    "errorCode": "403"
-}
-```
+| Field | Type | Description |
+| --- | --- | --- |
+| stat | string | "Not_Ok" for errors |
+| emsg | string | Error message in English |
+| stCode | int | Error code (see below) |
 
-#### 500 Internal Server Error
-```json
-{
-    "Status": "Failed",
-    "message": "Internal server error",
-    "errorCode": "500"
-}
-```
+## 6. Notes
 
-### Usage Example
-
-```python
-import requests
-
-url = "<Base_URL>/Portfolio/1.0/portfolio/v1/positions"
-headers = {
-    "Authorization": "your-api-token",
-    "Content-Type": "application/json"
-}
-payload = {
-    "Source": "N"
-}
-
-response = requests.post(url, headers=headers, json=payload)
-print(response.json())
-```
-
-### Notes
-- Positions are updated in real-time during market hours
-- P&L calculations include brokerage and other charges
-- Use this API to monitor your current trading positions
-- Positions are reset to zero at the start of each trading day for intraday positions
+- Only positions with actual trades for the day will be listed.
+- Use the latest session and auth tokens.
+- Quantities and amounts are strings for precision; convert as needed.
+- Refer to the scrip master for segment, instrument, and symbol details.

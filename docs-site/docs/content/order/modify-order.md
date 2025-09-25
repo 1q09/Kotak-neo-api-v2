@@ -6,20 +6,19 @@ The **Modify Order API** allows you to modify an already placed order’s parame
 
 ## 2. API Endpoint
 
-`POST <Base URL>/Orders/2.0/quick/order/vr/modify`
+`POST <Base URL>/quick/order/vr/modify`
 
-*Replace `<Base URL>` with the root Kotak Securities environment URL.*
+*Replace `<Base URL>` with the relevant Kotak environment base URL provided in response from /tradeApiValidate api.*
 
 ## 3. Headers
 
 | Name | Type | Description |
 | --- | --- | --- |
 | accept | string | Should always be `application/json` |
-| Sid | string | Session ID obtained after login  |
-| Auth | string | Trade token generated after user login  |
-| neo-fin-key | string | Client key example “neotradeapi” |
+| Sid | string | session sid generated on login |
+| Auth | string | session token generated on login |
+| neo-fin-key | string | static value: neotradeapi |
 | Content-Type | string | Always `application/x-www-form-urlencoded` |
-| Authorization | string | API Token from NEO dashboard ( no "Bearer" prefix) |
 
 ## 4. Request Body
 
@@ -28,29 +27,28 @@ The request body uses a single field named `jData`, which is a URL-encoded JSON 
 ## Example Request
 
 ```jsx
-curl --location '<Base URL>/Orders/2.0/quick/order/vr/modify' \
---header 'accept: application/json' \
---header 'Sid: ******-****-****-****-**********' \
---header 'Auth: ***********' \
---header 'neo-fin-key: neotradeapi' \
---header 'Content-Type: application/x-www-form-urlencoded' \
---header 'Authorization: ************' \
---data-urlencode 'jData={
-  "tk":"11536",
-  "mp":"0",
-  "pc":"NRML",
-  "dd":"NA",
-  "dq":"0",
-  "vd":"DAY",
-  "ts":"TCS-EQ",
-  "tt":"B",
-  "pr":"3001",
-  "tp":"0",
-  "qt":"10",
-  "no":"220106000000185",
-  "es":"nse_cm",
-  "pt":"L"
-}'
+curl -X POST "<baseUrl>/quick/order/vr/modify" \
+  -H "Auth: <session_token>" \
+  -H "Sid: <session_sid>" \
+  -H "neo-fin-key: neotradeapi" \
+  -H "Content-Type: application/x-www-form-urlencoded" \
+  --data-urlencode 'jData={
+    "am": "NO",
+    "dq": "0",
+    "es": "nse_cm",
+    "mp": "0",
+    "pc": "NRML",
+    "pf": "N",
+    "pr": "0",
+    "pt": "MKT",
+    "qt": "1",
+    "rt": "DAY",
+    "tp": "0",
+    "ts": "TATAPOWER-EQ",
+    "tt": "B",
+    "no": "<orderNo>"
+  }'
+
 ```
 
 ## Example Request Body (`jData`)
@@ -131,22 +129,6 @@ curl --location '<Base URL>/Orders/2.0/quick/order/vr/modify' \
 | stat | string | "Not_Ok" for errors |
 | emsg | string | Error message in English |
 | stCode | int | Error code (see below) |
-
-## Error Codes
-
-| Code | Description |
-| --- | --- |
-| 1002 | Invalid input parameters |
-| 1003 | Invalid or expired session |
-| 1004 | Insufficient funds or limits |
-| 1005 | Internal server error |
-| 1006 | Order could not be processed / Already executed |
-| 1007 | Exchange not reachable |
-| 1008 | Market closed |
-| 1009 | Invalid trading symbol |
-| 1010 | Quantity not allowed / contract expired |
-| 429 | Too many requests (rate limited) |
-| 500 | Unexpected server error |
 
 ## Notes
 

@@ -8,22 +8,22 @@ The **Scrip Master API** provides direct download links to the latest scrip mast
 
 ## 2. API Endpoint
 
-`GET <Base URL>/Files/1.0/masterscrip/v2/file-paths`
+`GET <Base URL>`/script-details/1.0/masterscrip/file-paths
 
-*Replace `<Base URL>` with the relevant Kotak environment root URL.*
+*Replace `<Base URL>` with the relevant Kotak environment base URL provided in response from /tradeApiValidate api.*
 
 ## 3. Headers
 
 | Name | Type | Description |
 | --- | --- | --- |
-| Authorization | string | API token as generated in your NEO app or web dashboard. No "Bearer" prefix. |
+| Authorization | string | Token provided in your NEO API dashboard - use plain token |
 
 ## 4. Request
 
 **Example Request**
 
 ```jsx
-curl --location '<Base URL>/Files/1.0/masterscrip/v2/file-paths' \
+curl --location '<Base URL>/script-details/1.0/masterscrip/file-paths' \
 --header 'Authorization: xxxxx-your-neo-token-xxxx'
 ```
 
@@ -71,11 +71,11 @@ curl --location '<Base URL>/Files/1.0/masterscrip/v2/file-paths' \
 | Column name | mapping | description |
 | --- | --- | --- |
 | pSymbol | Webscocket and Quotes API | this is passed along with pExchSeg with a separator in quotes and websocket APIs. example: nse_cm|11536&nse_cm|1594 |
-| pExchSeg | Orders API as **'es'** **field;**
+| pExchSeg | Orders API as **‘es’** **field;**
 Webscocket and Quotes API as part of query url | `Expected values are nse_cm, bse_cm, nse_fo, bse_fo, cde_fo` 
 passed as a string in case of orders API |
-| pTrdSymbol | Orders API as **'ts' field** | This refers to trading instrument in a way orders API interpret; passed as a string |
-| lLotSize | Orders API as **'qt' field** | Quantity sent in place order should be in multiple of the lot size  |
+| pTrdSymbol | Orders API as **‘ts’ field** | This refers to trading instrument in a way orders API interpret; passed as a string |
+| lLotSize | Orders API as **‘qt’ field** | Quantity sent in place order should be in multiple of the lot size  |
 | lExpiryDate | - | In case of contracts like in F&O, this represents the expiry date.  |
 
 ## 7. Example Workflow
@@ -90,3 +90,5 @@ passed as a string in case of orders API |
 - Each file relates to a specific exchange segment (e.g., `nse_fo`, `bse_cm`).
 - Download and cache these CSVs as needed for fast local symbol lookups.
 - Always secure your API token and never share confidential links or files publicly.
+
+---

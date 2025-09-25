@@ -18,22 +18,21 @@ Use these APIs to cancel pending orders before execution.
 
 | Order Type | Endpoint (after <Base URL>) |
 | --- | --- |
-| Regular Order | `/Orders/2.0/quick/order/cancel` |
-| Bracket Order (BO) | `/Orders/2.0/quick/order/bo/exit` |
-| Cover Order (CO) | `/Orders/2.0/quick/order/co/exit` |
+| Regular Order | `/quick/order/cancel` |
+| Bracket Order (BO) | `/quick/order/bo/exit` |
+| Cover Order (CO) | `/quick/order/co/exit` |
 
-**Replace `<Base URL>` with the appropriate Kotak Securities environment URL.**
+*Replace `<Base URL>` with the relevant Kotak environment base URL provided in response from /tradeApiValidate api.*
 
 ## 3. Headers
 
 | Name | Type | Description |
 | --- | --- | --- |
 | accept | string | Should always be `application/json` |
-| Sid | string | Session ID obtained after login  |
-| Auth | string | Trade token generated after user login  |
-| neo-fin-key | string | Client key example: “neotradeapi” |
+| Sid | string | session sid generated on login |
+| Auth | string | session token generated on login |
+| neo-fin-key | string | static value: neotradeapi |
 | Content-Type | string | Always `application/x-www-form-urlencoded` |
-| Authorization | string | API Token from NEO dashboard (no "Bearer" prefix) |
 
 ## 4. Request Body
 
@@ -42,29 +41,37 @@ The request body is a single URL-encoded field named `jData`, containing a JSON 
 ## Example Request
 
 ```jsx
-curl --location '<Base URL>/Orders/2.0/quick/order/cancel' \
---header 'accept: application/json' \
---header 'Sid: ******-****-****-****-**********' \
---header 'Auth: ***********' \
---header 'neo-fin-key: neotradeapi' \
---header 'Content-Type: application/x-www-form-urlencoded' \
---header 'Authorization: ************' \
---data-urlencode 'jData={
-  "am":"YES",
-  "on": "2105199703091997",
-  "ts": "TCS-EQ"
-}'
+# Cancel
+curl -X POST "<baseUrl>/quick/order/cancel" \
+  -H "Auth: <session_token>" \
+  -H "Sid: <session_sid>" \
+  -H "neo-fin-key: neotradeapi" \
+  -H "Content-Type: application/x-www-form-urlencoded" \
+  --data-urlencode 'jData={"on":"<orderNo>","am":"NO"}'
+
+# Exit Cover
+curl -X POST "<baseUrl>/quick/order/co/exit" \
+  -H "Auth: <session_token>" \
+  -H "Sid: <session_sid>" \
+  -H "neo-fin-key: neotradeapi" \
+  -H "Content-Type: application/x-www-form-urlencoded" \
+  --data-urlencode 'jData={"on":"<orderNo>","am":"NO"}'
+
+# Exit Bracket
+curl -X POST "<baseUrl>/quick/order/bo/exit" \
+  -H "Auth: <session_token>" \
+  -H "Sid: <session_sid>" \
+  -H "neo-fin-key: neotradeapi" \
+  -H "Content-Type: application/x-www-form-urlencoded" \
+  --data-urlencode 'jData={"on":"<orderNo>","am":"NO"}'
+
 ```
-
-*For BO cancellation, just change endpoint to `.../quick/order/bo/exit`.*
-
-*For CO cancellation, use `.../quick/order/co/exit`.*
 
 ## Example Request Body (`jData`)
 
 ```jsx
 {
-  "am": "YES",
+  "am": "NO",
   "on": "********************",
   "ts": "******-**"
 }
@@ -115,22 +122,6 @@ curl --location '<Base URL>/Orders/2.0/quick/order/cancel' \
 | stat | string | "Not_Ok" for errors |
 | emsg | string | Error message in English |
 | stCode | int | Error code (see below) |
-
-## Error Codes
-
-| Code | Description |
-| --- | --- |
-| 1002 | Invalid input parameters |
-| 1003 | Invalid or expired session |
-| 1004 | Insufficient funds or limits |
-| 1005 | Internal server error |
-| 1006 | Already cancelled, executed, or order not found |
-| 1007 | Exchange not reachable |
-| 1008 | Market closed |
-| 1009 | Invalid trading symbol |
-| 1010 | Order not found |
-| 429 | Too many requests (rate limited) |
-| 500 | Unexpected server error |
 
 ## 6. Usage Notes
 
