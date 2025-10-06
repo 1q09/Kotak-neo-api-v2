@@ -49,11 +49,6 @@
       "file": "content/login-with-totp.md"
     },
     {
-      "id": "totp-generation-steps",
-      "title": "TOTP Generation Steps",
-      "file": "content/totp-generation-steps.md"
-    },
-    {
       "id": "instruments",
       "title": "Instruments",
       "file": "content/instruments.md"
