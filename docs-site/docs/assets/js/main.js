@@ -97,11 +97,20 @@ document.addEventListener('DOMContentLoaded', async function() {
         const toggleBtn = document.getElementById('mobile-nav-toggle');
         if (toggleBtn) {
             toggleBtn.disabled = true;
-            toggleBtn.style.opacity = '0.6';
-            toggleBtn.style.cursor = 'not-allowed';
             toggleBtn.style.pointerEvents = 'none';
             toggleBtn.setAttribute('aria-disabled', 'true');
-            console.log('Mobile nav button disabled during content loading');
+            
+            // Replace hamburger icon with loading spinner
+            toggleBtn.innerHTML = `
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="loading-spinner">
+                    <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3" stroke-linecap="round" fill="none" opacity="0.25"/>
+                    <path d="M12 2a10 10 0 0 1 7.07 2.93" stroke="currentColor" stroke-width="3" stroke-linecap="round" fill="none">
+                        <animateTransform attributeName="transform" type="rotate" values="0 12 12;360 12 12" dur="1s" repeatCount="indefinite"/>
+                    </path>
+                </svg>
+            `;
+            
+            console.log('Mobile nav button disabled during content loading - showing spinner');
         }
     }
     
@@ -109,11 +118,19 @@ document.addEventListener('DOMContentLoaded', async function() {
         const toggleBtn = document.getElementById('mobile-nav-toggle');
         if (toggleBtn) {
             toggleBtn.disabled = false;
-            toggleBtn.style.opacity = '';
-            toggleBtn.style.cursor = '';
             toggleBtn.style.pointerEvents = '';
             toggleBtn.removeAttribute('aria-disabled');
-            console.log('Mobile nav button enabled - content loading complete');
+            
+            // Restore hamburger icon
+            toggleBtn.innerHTML = `
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M3 12H21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M3 6H21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M3 18H21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            `;
+            
+            console.log('Mobile nav button enabled - content loading complete - hamburger restored');
         }
     }
     

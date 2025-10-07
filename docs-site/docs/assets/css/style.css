@@ -786,19 +786,32 @@ pre code {
 
 .mobile-nav-toggle:disabled,
 .mobile-nav-toggle[aria-disabled="true"] {
-    opacity: 0.6 !important;
     cursor: not-allowed !important;
     pointer-events: none !important;
-    background: #6c757d !important;
+    background: #007bff !important; /* Keep the same blue color */
     transform: none !important;
-    box-shadow: 0 2px 10px rgba(108, 117, 125, 0.3) !important;
+    box-shadow: 0 2px 10px rgba(0, 123, 255, 0.3) !important;
 }
 
 .mobile-nav-toggle:disabled:hover,
 .mobile-nav-toggle[aria-disabled="true"]:hover {
-    background: #6c757d !important;
+    background: #007bff !important; /* Keep the same blue color */
     transform: none !important;
-    box-shadow: 0 2px 10px rgba(108, 117, 125, 0.3) !important;
+    box-shadow: 0 2px 10px rgba(0, 123, 255, 0.3) !important;
+}
+
+/* Loading spinner animation */
+.mobile-nav-toggle .loading-spinner {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
 }
 
 .mobile-nav-overlay {
