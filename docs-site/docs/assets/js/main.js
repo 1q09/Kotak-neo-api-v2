@@ -1,4 +1,169 @@
 document.addEventListener('DOMContentLoaded', async function() {
+    // Cache configuration
+    const CACHE_CONFIG = {
+        VERSION: '1.0.0', // Increment this when you want to invalidate cache
+        EXPIRY_HOURS: 24, // Cache expires after 24 hours
+        MAX_CACHE_SIZE: 50 // Maximum number of cached items
+    };
+
+    // Cache utility functions
+    const CacheManager = {
+        // Generate cache key
+        getCacheKey(url) {
+            return `neo_api_cache_${url.replace(/[^a-zA-Z0-9]/g, '_')}`;
+        },
+
+        // Check if cache is valid
+        isCacheValid(cacheData) {
+            if (!cacheData || !cacheData.timestamp || !cacheData.version) {
+                return false;
+            }
+            
+            // Check version
+            if (cacheData.version !== CACHE_CONFIG.VERSION) {
+                return false;
+            }
+            
+            // Check expiry
+            const now = Date.now();
+            const cacheAge = now - cacheData.timestamp;
+            const maxAge = CACHE_CONFIG.EXPIRY_HOURS * 60 * 60 * 1000;
+            
+            return cacheAge < maxAge;
+        },
+
+        // Store data in cache
+        setCache(url, data) {
+            try {
+                const cacheData = {
+                    data: data,
+                    timestamp: Date.now(),
+                    version: CACHE_CONFIG.VERSION,
+                    url: url
+                };
+                
+                const cacheKey = this.getCacheKey(url);
+                localStorage.setItem(cacheKey, JSON.stringify(cacheData));
+                
+                // Clean up old cache entries if needed
+                this.cleanupCache();
+                
+                console.log(`✅ Cached: ${url}`);
+            } catch (error) {
+                console.warn('Failed to cache data:', error);
+            }
+        },
+
+        // Get data from cache
+        getCache(url) {
+            try {
+                const cacheKey = this.getCacheKey(url);
+                const cachedItem = localStorage.getItem(cacheKey);
+                
+                if (!cachedItem) {
+                    return null;
+                }
+                
+                const cacheData = JSON.parse(cachedItem);
+                
+                if (this.isCacheValid(cacheData)) {
+                    console.log(`📦 Cache hit: ${url}`);
+                    return cacheData.data;
+                } else {
+                    // Remove invalid cache
+                    localStorage.removeItem(cacheKey);
+                    console.log(`🗑️ Cache expired: ${url}`);
+                    return null;
+                }
+            } catch (error) {
+                console.warn('Failed to read cache:', error);
+                return null;
+            }
+        },
+
+        // Clean up old cache entries
+        cleanupCache() {
+            try {
+                const cacheKeys = [];
+                
+                // Find all cache keys
+                for (let i = 0; i < localStorage.length; i++) {
+                    const key = localStorage.key(i);
+                    if (key && key.startsWith('neo_api_cache_')) {
+                        cacheKeys.push(key);
+                    }
+                }
+                
+                // If we have too many cached items, remove oldest ones
+                if (cacheKeys.length > CACHE_CONFIG.MAX_CACHE_SIZE) {
+                    const cacheItems = cacheKeys.map(key => {
+                        try {
+                            const data = JSON.parse(localStorage.getItem(key));
+                            return { key, timestamp: data.timestamp || 0 };
+                        } catch {
+                            return { key, timestamp: 0 };
+                        }
+                    });
+                    
+                    // Sort by timestamp (oldest first)
+                    cacheItems.sort((a, b) => a.timestamp - b.timestamp);
+                    
+                    // Remove oldest items
+                    const itemsToRemove = cacheItems.slice(0, cacheKeys.length - CACHE_CONFIG.MAX_CACHE_SIZE);
+                    itemsToRemove.forEach(item => {
+                        localStorage.removeItem(item.key);
+                    });
+                    
+                    console.log(`🧹 Cleaned up ${itemsToRemove.length} old cache entries`);
+                }
+            } catch (error) {
+                console.warn('Cache cleanup failed:', error);
+            }
+        },
+
+        // Clear all cache (useful for debugging)
+        clearAllCache() {
+            try {
+                const keysToRemove = [];
+                for (let i = 0; i < localStorage.length; i++) {
+                    const key = localStorage.key(i);
+                    if (key && key.startsWith('neo_api_cache_')) {
+                        keysToRemove.push(key);
+                    }
+                }
+                
+                keysToRemove.forEach(key => localStorage.removeItem(key));
+                console.log(`🗑️ Cleared ${keysToRemove.length} cache entries`);
+            } catch (error) {
+                console.warn('Failed to clear cache:', error);
+            }
+        }
+    };
+
+    // Enhanced fetch function with caching
+    async function fetchWithCache(url) {
+        // Check cache first
+        const cachedData = CacheManager.getCache(url);
+        if (cachedData) {
+            return cachedData;
+        }
+        
+        // Fetch from network
+        console.log(`🌐 Fetching: ${url}`);
+        const response = await fetch(url);
+        
+        if (!response.ok) {
+            throw new Error(`Failed to fetch ${url}: ${response.status}`);
+        }
+        
+        const data = await response.text();
+        
+        // Cache the response
+        CacheManager.setCache(url, data);
+        
+        return data;
+    }
+
     // Initialize theme from URL or localStorage
     initializeTheme();
     
@@ -37,8 +202,8 @@ document.addEventListener('DOMContentLoaded', async function() {
     
     // Load structure and start progressive loading
     try {
-        const response = await fetch('data/structure.json');
-        const structure = await response.json();
+        const structureData = await fetchWithCache('data/structure.json');
+        const structure = JSON.parse(structureData);
         
         // Store sections data
         sectionsData = structure.sections;
@@ -136,12 +301,8 @@ document.addEventListener('DOMContentLoaded', async function() {
     
     async function loadMarkdownFile(filePath) {
         try {
-            const response = await fetch(filePath);
-            if (!response.ok) {
-                throw new Error(`Failed to load ${filePath}`);
-            }
-            const markdown = await response.text();
-            return marked.parse(markdown);
+            const content = await fetchWithCache(filePath);
+            return marked.parse(content);
         } catch (error) {
             console.warn(`Could not load ${filePath}:`, error);
             return `<p>Content not available for ${filePath}</p>`;
@@ -877,4 +1038,64 @@ document.addEventListener('DOMContentLoaded', async function() {
     
     // Initialize copy functionality when content loads
     initializeCodeCopy();
+
+    // Add cache management functions (for debugging)
+    window.CacheDebug = {
+        // Show cache status
+        status() {
+            const cacheKeys = [];
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (key && key.startsWith('neo_api_cache_')) {
+                    cacheKeys.push(key);
+                }
+            }
+            
+            console.log(`📊 Cache Status:`);
+            console.log(`- Cached items: ${cacheKeys.length}/${CACHE_CONFIG.MAX_CACHE_SIZE}`);
+            console.log(`- Cache version: ${CACHE_CONFIG.VERSION}`);
+            console.log(`- Expiry: ${CACHE_CONFIG.EXPIRY_HOURS} hours`);
+            
+            // Show cache usage
+            let totalSize = 0;
+            cacheKeys.forEach(key => {
+                const item = localStorage.getItem(key);
+                if (item) {
+                    totalSize += item.length;
+                }
+            });
+            
+            console.log(`- Total cache size: ~${(totalSize / 1024).toFixed(2)} KB`);
+            return { count: cacheKeys.length, size: totalSize };
+        },
+        
+        // Clear cache
+        clear() {
+            CacheManager.clearAllCache();
+            console.log('🗑️ Cache cleared');
+        },
+        
+        // List cached items
+        list() {
+            const items = [];
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (key && key.startsWith('neo_api_cache_')) {
+                    try {
+                        const data = JSON.parse(localStorage.getItem(key));
+                        items.push({
+                            url: data.url,
+                            age: Math.round((Date.now() - data.timestamp) / 60000) + ' minutes',
+                            size: localStorage.getItem(key).length + ' chars'
+                        });
+                    } catch (e) {
+                        items.push({ url: key, age: 'invalid', size: 'unknown' });
+                    }
+                }
+            }
+            
+            console.table(items);
+            return items;
+        }
+    };
 });
