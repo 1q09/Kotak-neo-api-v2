@@ -103,7 +103,7 @@
     {
       "id": "quotes",
       "title": "Quotes",
-      "file": "content/Quotes.md"
+      "file": "content/kQuotes.md"
     },
     {
       "id": "curl-examples",

@@ -29,6 +29,9 @@ document.addEventListener('DOMContentLoaded', async function() {
     let loadingQueue = [];
     let isLoading = false;
     
+    // Disable mobile nav button initially
+    disableMobileNavButton();
+    
     // Show initial loading indicator
     showLoadingIndicator();
     
@@ -62,6 +65,10 @@ document.addEventListener('DOMContentLoaded', async function() {
     } catch (error) {
         console.error('Error loading content:', error);
         hideLoadingIndicator();
+        
+        // Enable mobile nav button even in case of error
+        enableMobileNavButton();
+        
         contentContainer.innerHTML = `
             <section id="error">
                 <h1>Error Loading Documentation</h1>
@@ -84,6 +91,30 @@ document.addEventListener('DOMContentLoaded', async function() {
     function hideLoadingIndicator() {
         // The loading indicator will be replaced by actual content
         // This function is here for consistency and future use
+    }
+    
+    function disableMobileNavButton() {
+        const toggleBtn = document.getElementById('mobile-nav-toggle');
+        if (toggleBtn) {
+            toggleBtn.disabled = true;
+            toggleBtn.style.opacity = '0.6';
+            toggleBtn.style.cursor = 'not-allowed';
+            toggleBtn.style.pointerEvents = 'none';
+            toggleBtn.setAttribute('aria-disabled', 'true');
+            console.log('Mobile nav button disabled during content loading');
+        }
+    }
+    
+    function enableMobileNavButton() {
+        const toggleBtn = document.getElementById('mobile-nav-toggle');
+        if (toggleBtn) {
+            toggleBtn.disabled = false;
+            toggleBtn.style.opacity = '';
+            toggleBtn.style.cursor = '';
+            toggleBtn.style.pointerEvents = '';
+            toggleBtn.removeAttribute('aria-disabled');
+            console.log('Mobile nav button enabled - content loading complete');
+        }
     }
     
     async function loadMarkdownFile(filePath) {
@@ -153,6 +184,9 @@ document.addEventListener('DOMContentLoaded', async function() {
         }
         
         console.log('All sections loaded!');
+        
+        // Enable mobile nav button now that content is fully loaded
+        enableMobileNavButton();
     }
 
     async function loadSectionContent(section) {
@@ -541,32 +575,110 @@ document.addEventListener('DOMContentLoaded', async function() {
         const closeBtn = document.getElementById('mobile-nav-close');
         const mobileNavList = document.getElementById('mobile-navigation-list');
 
-                // Copy navigation items to mobile drawer
+        // Ensure all elements exist before proceeding
+        if (!toggleBtn || !overlay || !drawer || !closeBtn || !mobileNavList) {
+            console.warn('Mobile navigation elements not found. Retrying in 500ms...');
+            setTimeout(initializeMobileNavigation, 500);
+            return;
+        }
+
+        console.log('Mobile navigation initialized successfully');
+
+        // Copy navigation items to mobile drawer
         function populateMobileNav() {
             const desktopNavList = document.getElementById('navigation-list');
-            if (desktopNavList) {
+            if (desktopNavList && desktopNavList.innerHTML.trim()) {
                 mobileNavList.innerHTML = desktopNavList.innerHTML;
+                console.log('Mobile navigation populated');
                 // Re-initialize navigation to attach click handlers to new mobile links
                 initializeNavigation();
+            } else {
+                // Retry if desktop navigation isn't ready yet
+                setTimeout(populateMobileNav, 500);
             }
         }
 
-        // Open mobile navigation
-        function openMobileNav() {
-            document.body.style.overflow = 'hidden'; // Prevent background scrolling
+        // Open mobile navigation with improved reliability
+        function openMobileNav(e) {
+            if (e) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+            
+            console.log('Opening mobile navigation');
+            
+            // Force the classes to be added
+            document.body.style.overflow = 'hidden';
+            document.body.classList.add('mobile-nav-open');
+            
+            // Use both class and style for maximum compatibility
             overlay.classList.add('active');
+            overlay.style.display = 'block';
+            overlay.style.opacity = '1';
+            
             drawer.classList.add('active');
+            drawer.style.transform = 'translateX(0)';
+            
+            // Force a reflow to ensure changes are applied
+            drawer.offsetHeight;
         }
 
-        // Close mobile navigation
-        function closeMobileNav() {
+        // Close mobile navigation with improved reliability
+        function closeMobileNav(e) {
+            if (e) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+            
+            console.log('Closing mobile navigation');
+            
+            // Remove classes and reset styles
+            document.body.style.overflow = '';
+            document.body.classList.remove('mobile-nav-open');
+            
             overlay.classList.remove('active');
+            overlay.style.display = '';
+            overlay.style.opacity = '';
+            
             drawer.classList.remove('active');
-            document.body.style.overflow = ''; // Restore scrolling
+            drawer.style.transform = '';
         }
+
+        // Add multiple event listeners for better reliability
+        function addRobustEventListener(element, eventType, handler) {
+            if (element) {
+                element.addEventListener(eventType, handler, { passive: false });
+                // Add a backup with a slight delay
+                element.addEventListener(eventType, (e) => {
+                    setTimeout(() => handler(e), 10);
+                }, { passive: false });
+            }
+        }
+
+        // Event listeners with improved error handling
+        addRobustEventListener(toggleBtn, 'click', openMobileNav);
+        addRobustEventListener(toggleBtn, 'touchend', openMobileNav);
+        
+        addRobustEventListener(closeBtn, 'click', closeMobileNav);
+        addRobustEventListener(closeBtn, 'touchend', closeMobileNav);
+        
+        addRobustEventListener(overlay, 'click', closeMobileNav);
+        addRobustEventListener(overlay, 'touchend', closeMobileNav);
+
+        // Close on escape key
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && drawer && drawer.classList.contains('active')) {
+                closeMobileNav();
+            }
+        });
+
+        // Populate mobile navigation when content loads
+        setTimeout(populateMobileNav, 1000);
 
         // Update active link in mobile navigation
         function updateMobileActiveNav() {
+            if (!mobileNavList) return;
+            
             const sections = document.querySelectorAll('section, div[id]');
             const scrollPos = window.scrollY + 100;
             const mobileLinks = mobileNavList.querySelectorAll('a');
@@ -586,21 +698,6 @@ document.addEventListener('DOMContentLoaded', async function() {
                 }
             });
         }
-
-        // Event listeners
-        if (toggleBtn) toggleBtn.addEventListener('click', openMobileNav);
-        if (closeBtn) closeBtn.addEventListener('click', closeMobileNav);
-        if (overlay) overlay.addEventListener('click', closeMobileNav);
-
-        // Close on escape key
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape' && drawer.classList.contains('active')) {
-                closeMobileNav();
-            }
-        });
-
-        // Populate mobile navigation when content loads
-        setTimeout(populateMobileNav, 1000);
 
         // Update active navigation on scroll
         window.addEventListener('scroll', updateMobileActiveNav);
