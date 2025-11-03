@@ -1,0 +1,1101 @@
+document.addEventListener('DOMContentLoaded', async function() {
+    // Cache configuration
+    const CACHE_CONFIG = {
+        VERSION: '1.0.0', // Increment this when you want to invalidate cache
+        EXPIRY_HOURS: 24, // Cache expires after 24 hours
+        MAX_CACHE_SIZE: 50 // Maximum number of cached items
+    };
+
+    // Cache utility functions
+    const CacheManager = {
+        // Generate cache key
+        getCacheKey(url) {
+            return `neo_api_cache_${url.replace(/[^a-zA-Z0-9]/g, '_')}`;
+        },
+
+        // Check if cache is valid
+        isCacheValid(cacheData) {
+            if (!cacheData || !cacheData.timestamp || !cacheData.version) {
+                return false;
+            }
+            
+            // Check version
+            if (cacheData.version !== CACHE_CONFIG.VERSION) {
+                return false;
+            }
+            
+            // Check expiry
+            const now = Date.now();
+            const cacheAge = now - cacheData.timestamp;
+            const maxAge = CACHE_CONFIG.EXPIRY_HOURS * 60 * 60 * 1000;
+            
+            return cacheAge < maxAge;
+        },
+
+        // Store data in cache
+        setCache(url, data) {
+            try {
+                const cacheData = {
+                    data: data,
+                    timestamp: Date.now(),
+                    version: CACHE_CONFIG.VERSION,
+                    url: url
+                };
+                
+                const cacheKey = this.getCacheKey(url);
+                localStorage.setItem(cacheKey, JSON.stringify(cacheData));
+                
+                // Clean up old cache entries if needed
+                this.cleanupCache();
+                
+                console.log(`✅ Cached: ${url}`);
+            } catch (error) {
+                console.warn('Failed to cache data:', error);
+            }
+        },
+
+        // Get data from cache
+        getCache(url) {
+            try {
+                const cacheKey = this.getCacheKey(url);
+                const cachedItem = localStorage.getItem(cacheKey);
+                
+                if (!cachedItem) {
+                    return null;
+                }
+                
+                const cacheData = JSON.parse(cachedItem);
+                
+                if (this.isCacheValid(cacheData)) {
+                    console.log(`📦 Cache hit: ${url}`);
+                    return cacheData.data;
+                } else {
+                    // Remove invalid cache
+                    localStorage.removeItem(cacheKey);
+                    console.log(`🗑️ Cache expired: ${url}`);
+                    return null;
+                }
+            } catch (error) {
+                console.warn('Failed to read cache:', error);
+                return null;
+            }
+        },
+
+        // Clean up old cache entries
+        cleanupCache() {
+            try {
+                const cacheKeys = [];
+                
+                // Find all cache keys
+                for (let i = 0; i < localStorage.length; i++) {
+                    const key = localStorage.key(i);
+                    if (key && key.startsWith('neo_api_cache_')) {
+                        cacheKeys.push(key);
+                    }
+                }
+                
+                // If we have too many cached items, remove oldest ones
+                if (cacheKeys.length > CACHE_CONFIG.MAX_CACHE_SIZE) {
+                    const cacheItems = cacheKeys.map(key => {
+                        try {
+                            const data = JSON.parse(localStorage.getItem(key));
+                            return { key, timestamp: data.timestamp || 0 };
+                        } catch {
+                            return { key, timestamp: 0 };
+                        }
+                    });
+                    
+                    // Sort by timestamp (oldest first)
+                    cacheItems.sort((a, b) => a.timestamp - b.timestamp);
+                    
+                    // Remove oldest items
+                    const itemsToRemove = cacheItems.slice(0, cacheKeys.length - CACHE_CONFIG.MAX_CACHE_SIZE);
+                    itemsToRemove.forEach(item => {
+                        localStorage.removeItem(item.key);
+                    });
+                    
+                    console.log(`🧹 Cleaned up ${itemsToRemove.length} old cache entries`);
+                }
+            } catch (error) {
+                console.warn('Cache cleanup failed:', error);
+            }
+        },
+
+        // Clear all cache (useful for debugging)
+        clearAllCache() {
+            try {
+                const keysToRemove = [];
+                for (let i = 0; i < localStorage.length; i++) {
+                    const key = localStorage.key(i);
+                    if (key && key.startsWith('neo_api_cache_')) {
+                        keysToRemove.push(key);
+                    }
+                }
+                
+                keysToRemove.forEach(key => localStorage.removeItem(key));
+                console.log(`🗑️ Cleared ${keysToRemove.length} cache entries`);
+            } catch (error) {
+                console.warn('Failed to clear cache:', error);
+            }
+        }
+    };
+
+    // Enhanced fetch function with caching
+    async function fetchWithCache(url) {
+        // Check cache first
+        const cachedData = CacheManager.getCache(url);
+        if (cachedData) {
+            return cachedData;
+        }
+        
+        // Fetch from network
+        console.log(`🌐 Fetching: ${url}`);
+        const response = await fetch(url);
+        
+        if (!response.ok) {
+            throw new Error(`Failed to fetch ${url}: ${response.status}`);
+        }
+        
+        const data = await response.text();
+        
+        // Cache the response
+        CacheManager.setCache(url, data);
+        
+        return data;
+    }
+
+    // Initialize theme from URL or localStorage
+    initializeTheme();
+    
+    // Configure marked.js with highlight.js for syntax highlighting
+    marked.setOptions({
+        highlight: function(code, lang) {
+            if (lang && hljs.getLanguage(lang)) {
+                try {
+                    return hljs.highlight(code, { language: lang }).value;
+                } catch (err) {
+                    console.warn('Highlight.js error:', err);
+                }
+            }
+            return hljs.highlightAuto(code).value;
+        },
+        breaks: true,
+        gfm: true
+    });
+    
+    const searchInput = document.getElementById('search');
+    const contentContainer = document.getElementById('documentation-content');
+    const navigationList = document.getElementById('navigation-list');
+    const mobileNavigationList = document.getElementById('mobile-navigation-list');
+    
+    let allSections = [];
+    let sectionsData = {};
+    let loadedSections = new Set();
+    let loadingQueue = [];
+    let isLoading = false;
+    
+    // Disable mobile nav button initially
+    disableMobileNavButton();
+    
+    // Show initial loading indicator
+    showLoadingIndicator();
+    
+    // Load structure and start progressive loading
+    try {
+        const structureData = await fetchWithCache('data/structure.json');
+        const structure = JSON.parse(structureData);
+        
+        // Store sections data
+        sectionsData = structure.sections;
+        
+        // Flatten sections for navigation and search
+        structure.sections.forEach(section => {
+            allSections.push(section);
+            if (section.subsections) {
+                section.subsections.forEach(subsection => {
+                    allSections.push(subsection);
+                });
+            }
+        });
+        
+        // Generate navigation immediately
+        generateNavigation(structure.sections);
+        
+        // Start progressive loading: load first section immediately, then queue others
+        await progressivelyLoadContent(structure.sections);
+        
+        // Initialize functionality
+        initializeSearch();
+        
+    } catch (error) {
+        console.error('Error loading content:', error);
+        hideLoadingIndicator();
+        
+        // Enable mobile nav button even in case of error
+        enableMobileNavButton();
+        
+        contentContainer.innerHTML = `
+            <section id="error">
+                <h1>Error Loading Documentation</h1>
+                <p>Sorry, there was an error loading the documentation. Please try refreshing the page.</p>
+                <p>Error details: ${error.message}</p>
+            </section>
+        `;
+    }
+
+    function showLoadingIndicator() {
+        contentContainer.innerHTML = `
+            <div class="loading-container">
+                <div class="loading-spinner"></div>
+                <h2>Loading Documentation...</h2>
+                <p>Please wait while we load the API documentation</p>
+            </div>
+        `;
+    }
+    
+    function hideLoadingIndicator() {
+        // The loading indicator will be replaced by actual content
+        // This function is here for consistency and future use
+    }
+    
+    function disableMobileNavButton() {
+        const toggleBtn = document.getElementById('mobile-nav-toggle');
+        if (toggleBtn) {
+            toggleBtn.disabled = true;
+            toggleBtn.style.pointerEvents = 'none';
+            toggleBtn.setAttribute('aria-disabled', 'true');
+            
+            // Replace hamburger icon with loading spinner
+            toggleBtn.innerHTML = `
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="loading-spinner">
+                    <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3" stroke-linecap="round" fill="none" opacity="0.25"/>
+                    <path d="M12 2a10 10 0 0 1 7.07 2.93" stroke="currentColor" stroke-width="3" stroke-linecap="round" fill="none">
+                        <animateTransform attributeName="transform" type="rotate" values="0 12 12;360 12 12" dur="1s" repeatCount="indefinite"/>
+                    </path>
+                </svg>
+            `;
+            
+            console.log('Mobile nav button disabled during content loading - showing spinner');
+        }
+    }
+    
+    function enableMobileNavButton() {
+        const toggleBtn = document.getElementById('mobile-nav-toggle');
+        if (toggleBtn) {
+            toggleBtn.disabled = false;
+            toggleBtn.style.pointerEvents = '';
+            toggleBtn.removeAttribute('aria-disabled');
+            
+            // Restore hamburger icon
+            toggleBtn.innerHTML = `
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M3 12H21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M3 6H21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M3 18H21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            `;
+            
+            console.log('Mobile nav button enabled - content loading complete - hamburger restored');
+        }
+    }
+    
+    async function loadMarkdownFile(filePath) {
+        try {
+            const content = await fetchWithCache(filePath);
+            return marked.parse(content);
+        } catch (error) {
+            console.warn(`Could not load ${filePath}:`, error);
+            return `<p>Content not available for ${filePath}</p>`;
+        }
+    }
+
+    async function progressivelyLoadContent(sections) {
+        let allContentHtml = '';
+        
+        // First, load and show the first section immediately
+        if (sections.length > 0) {
+            const firstSection = sections[0];
+            console.log('Loading first section:', firstSection.title);
+            
+            const firstSectionHtml = await loadSectionContent(firstSection);
+            allContentHtml += firstSectionHtml;
+            
+            // Display first section and hide loader
+            contentContainer.innerHTML = allContentHtml;
+            hljs.highlightAll();
+            initializeCodeCopy();
+            hideLoadingIndicator();
+            
+            // Mark first section as loaded
+            loadedSections.add(firstSection.id);
+            if (firstSection.subsections) {
+                firstSection.subsections.forEach(sub => loadedSections.add(sub.id));
+            }
+        }
+        
+        // Then load remaining sections in the background
+        for (let i = 1; i < sections.length; i++) {
+            const section = sections[i];
+            console.log('Background loading:', section.title);
+            
+            try {
+                const sectionHtml = await loadSectionContent(section);
+                allContentHtml += sectionHtml;
+                
+                // Update the DOM with new content
+                contentContainer.innerHTML = allContentHtml;
+                hljs.highlightAll();
+                initializeCodeCopy();
+                
+                // Mark section as loaded
+                loadedSections.add(section.id);
+                if (section.subsections) {
+                    section.subsections.forEach(sub => loadedSections.add(sub.id));
+                }
+                
+                // Small delay to not block the UI
+                await new Promise(resolve => setTimeout(resolve, 100));
+                
+            } catch (error) {
+                console.error(`Error loading section ${section.title}:`, error);
+            }
+        }
+        
+        console.log('All sections loaded!');
+        
+        // Enable mobile nav button now that content is fully loaded
+        enableMobileNavButton();
+    }
+
+    async function loadSectionContent(section) {
+        let sectionHtml = '';
+        
+        // Load main section content
+        const sectionContent = await loadMarkdownFile(section.file);
+        sectionHtml = `<section id="${section.id}">${sectionContent}`;
+        
+        // Load subsections if they exist and have separate files
+        if (section.subsections) {
+            for (const subsection of section.subsections) {
+                // Only load subsection content if it has a separate file
+                if (subsection.file) {
+                    const subContent = await loadMarkdownFile(subsection.file);
+                    sectionHtml += `<div id="${subsection.id}">${subContent}</div>`;
+                }
+                // If no file is specified, the subsection is just an anchor within the main section
+            }
+        }
+        
+        sectionHtml += `</section>`;
+        return sectionHtml;
+    }
+    
+    function generateNavigation(sections) {
+        let navHtml = '';
+        
+        sections.forEach(section => {
+            navHtml += `<li><a href="#${section.id}">${section.title}</a></li>`;
+            
+            if (section.subsections) {
+                section.subsections.forEach(subsection => {
+                    navHtml += `<li><a href="#${subsection.id}" class="subsection">${subsection.title}</a></li>`;
+                });
+            }
+        });
+        
+        // Populate both desktop and mobile navigation
+        navigationList.innerHTML = navHtml;
+        if (mobileNavigationList) {
+            mobileNavigationList.innerHTML = navHtml;
+        }
+        
+        // Initialize navigation click handlers after navigation is generated
+        initializeNavigation();
+    }
+
+    function initializeSearch() {
+        const searchResultsCount = document.getElementById('search-results-count');
+        const searchNavigationHint = document.getElementById('search-navigation-hint');
+        let currentMatchIndex = -1;
+        let totalHighlights = [];
+        
+        searchInput.addEventListener('input', function() {
+            const searchTerm = this.value.toLowerCase().trim();
+            const sections = document.querySelectorAll('section, div[id]');
+            let totalMatches = 0;
+            let sectionsWithMatches = 0;
+            
+            // Reset navigation state
+            currentMatchIndex = -1;
+            totalHighlights = [];
+            
+            // Clear previous highlights
+            clearSearchHighlights();
+            
+            if (searchTerm === '') {
+                // Show all sections when search is empty
+                sections.forEach(section => {
+                    if (!section.id || section.id === 'loading' || section.id === 'error') {
+                        return;
+                    }
+                    section.style.display = 'block';
+                });
+                searchResultsCount.textContent = '';
+                searchResultsCount.classList.remove('visible');
+                searchNavigationHint.textContent = '';
+                return;
+            }
+            
+            sections.forEach(section => {
+                if (!section.id || section.id === 'loading' || section.id === 'error') {
+                    return;
+                }
+                
+                const text = section.textContent.toLowerCase();
+                const matches = countMatches(text, searchTerm);
+                
+                if (matches > 0) {
+                    section.style.display = 'block';
+                    highlightSearchTerms(section, searchTerm);
+                    totalMatches += matches;
+                    sectionsWithMatches++;
+                } else {
+                    section.style.display = 'none';
+                }
+            });
+            
+            // Collect all highlights for navigation
+            totalHighlights = Array.from(document.querySelectorAll('.search-highlight'));
+            
+            // Update search results counter
+            if (totalMatches > 0) {
+                const matchText = totalMatches === 1 ? 'match' : 'matches';
+                const sectionText = sectionsWithMatches === 1 ? 'section' : 'sections';
+                searchResultsCount.textContent = `${totalMatches} ${matchText} in ${sectionsWithMatches} ${sectionText}`;
+                searchResultsCount.classList.add('visible');
+                
+                // Show navigation hint
+                if (totalHighlights.length > 1) {
+                    searchNavigationHint.textContent = 'Press Enter to navigate matches, Shift+Enter for previous';
+                } else {
+                    searchNavigationHint.textContent = '';
+                }
+                
+                // Highlight first match if there are results
+                if (totalHighlights.length > 0) {
+                    currentMatchIndex = 0;
+                    highlightCurrentMatch();
+                }
+            } else {
+                searchResultsCount.textContent = 'No matches found';
+                searchResultsCount.classList.add('visible');
+                searchNavigationHint.textContent = '';
+            }
+        });
+        
+        // Add keyboard navigation
+        searchInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                
+                if (totalHighlights.length === 0) return;
+                
+                if (e.shiftKey) {
+                    // Shift+Enter: Previous match
+                    navigateToPreviousMatch();
+                } else {
+                    // Enter: Next match
+                    navigateToNextMatch();
+                }
+            }
+        });
+        
+        function navigateToNextMatch() {
+            if (totalHighlights.length === 0) return;
+            
+            currentMatchIndex = (currentMatchIndex + 1) % totalHighlights.length;
+            highlightCurrentMatch();
+            scrollToCurrentMatch();
+        }
+        
+        function navigateToPreviousMatch() {
+            if (totalHighlights.length === 0) return;
+            
+            currentMatchIndex = currentMatchIndex <= 0 ? totalHighlights.length - 1 : currentMatchIndex - 1;
+            highlightCurrentMatch();
+            scrollToCurrentMatch();
+        }
+        
+        function highlightCurrentMatch() {
+            // Remove current highlighting from all matches
+            totalHighlights.forEach(highlight => highlight.classList.remove('current'));
+            
+            // Add current highlighting to active match
+            if (currentMatchIndex >= 0 && currentMatchIndex < totalHighlights.length) {
+                totalHighlights[currentMatchIndex].classList.add('current');
+                
+                // Update counter to show current position
+                const matchText = totalHighlights.length === 1 ? 'match' : 'matches';
+                const sectionsWithMatches = new Set(totalHighlights.map(h => h.closest('section, div[id]'))).size;
+                const sectionText = sectionsWithMatches === 1 ? 'section' : 'sections';
+                searchResultsCount.textContent = `${currentMatchIndex + 1} of ${totalHighlights.length} ${matchText} in ${sectionsWithMatches} ${sectionText}`;
+            }
+        }
+        
+        function scrollToCurrentMatch() {
+            if (currentMatchIndex >= 0 && currentMatchIndex < totalHighlights.length) {
+                const currentHighlight = totalHighlights[currentMatchIndex];
+                const contentElement = document.querySelector('.content');
+                
+                // Calculate position relative to content container
+                const highlightRect = currentHighlight.getBoundingClientRect();
+                const contentRect = contentElement.getBoundingClientRect();
+                const scrollPosition = highlightRect.top - contentRect.top + contentElement.scrollTop - 100; // 100px offset for better visibility
+                
+                contentElement.scrollTo({
+                    top: scrollPosition,
+                    behavior: 'smooth'
+                });
+            }
+        }
+    }
+    
+    // Helper function to count all occurrences of search term in text
+    function countMatches(text, searchTerm) {
+        if (!searchTerm) return 0;
+        
+        // Use regex to find all matches (case insensitive)
+        const regex = new RegExp(searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
+        const matches = text.match(regex);
+        return matches ? matches.length : 0;
+    }
+    
+    function clearSearchHighlights() {
+        const highlights = document.querySelectorAll('.search-highlight');
+        highlights.forEach(highlight => {
+            const parent = highlight.parentNode;
+            parent.insertBefore(document.createTextNode(highlight.textContent), highlight);
+            parent.removeChild(highlight);
+            parent.normalize();
+        });
+    }
+    
+    function highlightSearchTerms(element, searchTerm) {
+        const walker = document.createTreeWalker(
+            element,
+            NodeFilter.SHOW_TEXT,
+            {
+                acceptNode: function(node) {
+                    // Skip script, style, and already highlighted nodes
+                    const parent = node.parentNode;
+                    if (parent.tagName === 'SCRIPT' || 
+                        parent.tagName === 'STYLE' || 
+                        parent.classList.contains('search-highlight') ||
+                        parent.classList.contains('code-copy-btn')) {
+                        return NodeFilter.FILTER_REJECT;
+                    }
+                    return NodeFilter.FILTER_ACCEPT;
+                }
+            }
+        );
+        
+        const textNodes = [];
+        let node;
+        while (node = walker.nextNode()) {
+            textNodes.push(node);
+        }
+        
+        textNodes.forEach(textNode => {
+            const text = textNode.textContent;
+            const lowerText = text.toLowerCase();
+            const index = lowerText.indexOf(searchTerm);
+            
+            if (index !== -1) {
+                const beforeText = text.substring(0, index);
+                const matchText = text.substring(index, index + searchTerm.length);
+                const afterText = text.substring(index + searchTerm.length);
+                
+                const fragment = document.createDocumentFragment();
+                
+                if (beforeText) {
+                    fragment.appendChild(document.createTextNode(beforeText));
+                }
+                
+                const highlight = document.createElement('span');
+                highlight.className = 'search-highlight';
+                highlight.textContent = matchText;
+                fragment.appendChild(highlight);
+                
+                if (afterText) {
+                    const afterNode = document.createTextNode(afterText);
+                    fragment.appendChild(afterNode);
+                    
+                    // Recursively highlight remaining occurrences in the after text
+                    const tempDiv = document.createElement('div');
+                    tempDiv.appendChild(afterNode.cloneNode(true));
+                    if (tempDiv.textContent.toLowerCase().indexOf(searchTerm) !== -1) {
+                        highlightSearchTerms(tempDiv, searchTerm);
+                        fragment.removeChild(fragment.lastChild);
+                        while (tempDiv.firstChild) {
+                            fragment.appendChild(tempDiv.firstChild);
+                        }
+                    }
+                }
+                
+                textNode.parentNode.replaceChild(fragment, textNode);
+            }
+        });
+    }
+
+    function initializeNavigation() {
+        // Get navigation links from both desktop and mobile navigation
+        const desktopNavLinks = document.querySelectorAll('#navigation-list a');
+        const mobileNavLinks = document.querySelectorAll('#mobile-navigation-list a');
+        const allNavLinks = [...desktopNavLinks, ...mobileNavLinks];
+        
+        // Smooth scrolling for navigation links with click highlighting
+        allNavLinks.forEach((link, index) => {
+            link.addEventListener('click', function(e) {
+                e.preventDefault();
+                
+                // Check if this is a mobile navigation link and close mobile nav
+                const isMobileLink = this.closest('#mobile-navigation-list');
+                if (isMobileLink) {
+                    // Close mobile navigation
+                    const overlay = document.getElementById('mobile-nav-overlay');
+                    const drawer = document.getElementById('mobile-nav-drawer');
+                    if (overlay) overlay.classList.remove('active');
+                    if (drawer) drawer.classList.remove('active');
+                    document.body.classList.remove('mobile-nav-open');
+                }
+                
+                // Remove active class from all navigation links
+                allNavLinks.forEach(navLink => {
+                    navLink.classList.remove('active');
+                });
+                
+                // Add active class to clicked link
+                this.classList.add('active');
+                
+                const targetId = this.getAttribute('href').substring(1);
+                const targetElement = document.getElementById(targetId);
+                const contentElement = document.querySelector('.content');
+                
+                if (targetElement && contentElement) {
+                    // Calculate position relative to content container
+                    const targetRect = targetElement.getBoundingClientRect();
+                    const contentRect = contentElement.getBoundingClientRect();
+                    const scrollPosition = targetRect.top - contentRect.top + contentElement.scrollTop - 20; // 20px offset
+                    
+                    const scrollDelay = isMobileLink ? 300 : 0; // Delay for mobile to allow drawer to close
+                    
+                    setTimeout(() => {
+                        contentElement.scrollTo({
+                            top: scrollPosition,
+                            behavior: 'smooth'
+                        });
+                    }, scrollDelay);
+                } else {
+                    // If target element not found, try to find it by waiting for content to load
+                    setTimeout(() => {
+                        const delayedTarget = document.getElementById(targetId);
+                        if (delayedTarget && contentElement) {
+                            const targetRect = delayedTarget.getBoundingClientRect();
+                            const contentRect = contentElement.getBoundingClientRect();
+                            const scrollPosition = targetRect.top - contentRect.top + contentElement.scrollTop - 20;
+                            
+                            contentElement.scrollTo({
+                                top: scrollPosition,
+                                behavior: 'smooth'
+                            });
+                        }
+                    }, 500); // Wait 500ms for content to fully load
+                }
+            });
+        });
+    }
+    
+    // Scroll to Top Button functionality
+    function initializeScrollToTop() {
+        const scrollToTopBtn = document.getElementById('scroll-to-top');
+        const contentElement = document.querySelector('.content');
+        
+        // Show/hide button based on scroll position
+        function toggleScrollButton() {
+            if (contentElement.scrollTop > 300) {
+                scrollToTopBtn.classList.add('visible');
+            } else {
+                scrollToTopBtn.classList.remove('visible');
+            }
+        }
+        
+        // Smooth scroll to top
+        function scrollToTop() {
+            contentElement.scrollTo({
+                top: 0,
+                behavior: 'smooth'
+            });
+        }
+        
+        // Event listeners
+        contentElement.addEventListener('scroll', toggleScrollButton);
+        scrollToTopBtn.addEventListener('click', scrollToTop);
+        
+        // Initial check
+        toggleScrollButton();
+    }
+    
+    // Mobile Navigation functionality
+    function initializeMobileNavigation() {
+        const toggleBtn = document.getElementById('mobile-nav-toggle');
+        const overlay = document.getElementById('mobile-nav-overlay');
+        const drawer = document.getElementById('mobile-nav-drawer');
+        const closeBtn = document.getElementById('mobile-nav-close');
+        const mobileNavList = document.getElementById('mobile-navigation-list');
+
+        // Ensure all elements exist before proceeding
+        if (!toggleBtn || !overlay || !drawer || !closeBtn || !mobileNavList) {
+            console.warn('Mobile navigation elements not found. Retrying in 500ms...');
+            setTimeout(initializeMobileNavigation, 500);
+            return;
+        }
+
+        console.log('Mobile navigation initialized successfully');
+
+        // Copy navigation items to mobile drawer
+        function populateMobileNav() {
+            const desktopNavList = document.getElementById('navigation-list');
+            if (desktopNavList && desktopNavList.innerHTML.trim()) {
+                mobileNavList.innerHTML = desktopNavList.innerHTML;
+                console.log('Mobile navigation populated');
+                // Re-initialize navigation to attach click handlers to new mobile links
+                initializeNavigation();
+            } else {
+                // Retry if desktop navigation isn't ready yet
+                setTimeout(populateMobileNav, 500);
+            }
+        }
+
+        // Open mobile navigation with improved reliability
+        function openMobileNav(e) {
+            if (e) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+            
+            console.log('Opening mobile navigation');
+            
+            // Force the classes to be added
+            document.body.style.overflow = 'hidden';
+            document.body.classList.add('mobile-nav-open');
+            
+            // Use both class and style for maximum compatibility
+            overlay.classList.add('active');
+            overlay.style.display = 'block';
+            overlay.style.opacity = '1';
+            
+            drawer.classList.add('active');
+            drawer.style.transform = 'translateX(0)';
+            
+            // Force a reflow to ensure changes are applied
+            drawer.offsetHeight;
+        }
+
+        // Close mobile navigation with improved reliability
+        function closeMobileNav(e) {
+            if (e) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+            
+            console.log('Closing mobile navigation');
+            
+            // Remove classes and reset styles
+            document.body.style.overflow = '';
+            document.body.classList.remove('mobile-nav-open');
+            
+            overlay.classList.remove('active');
+            overlay.style.display = '';
+            overlay.style.opacity = '';
+            
+            drawer.classList.remove('active');
+            drawer.style.transform = '';
+        }
+
+        // Add multiple event listeners for better reliability
+        function addRobustEventListener(element, eventType, handler) {
+            if (element) {
+                element.addEventListener(eventType, handler, { passive: false });
+                // Add a backup with a slight delay
+                element.addEventListener(eventType, (e) => {
+                    setTimeout(() => handler(e), 10);
+                }, { passive: false });
+            }
+        }
+
+        // Event listeners with improved error handling
+        addRobustEventListener(toggleBtn, 'click', openMobileNav);
+        addRobustEventListener(toggleBtn, 'touchend', openMobileNav);
+        
+        addRobustEventListener(closeBtn, 'click', closeMobileNav);
+        addRobustEventListener(closeBtn, 'touchend', closeMobileNav);
+        
+        addRobustEventListener(overlay, 'click', closeMobileNav);
+        addRobustEventListener(overlay, 'touchend', closeMobileNav);
+
+        // Close on escape key
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && drawer && drawer.classList.contains('active')) {
+                closeMobileNav();
+            }
+        });
+
+        // Populate mobile navigation when content loads
+        setTimeout(populateMobileNav, 1000);
+
+        // Update active link in mobile navigation
+        function updateMobileActiveNav() {
+            if (!mobileNavList) return;
+            
+            const sections = document.querySelectorAll('section, div[id]');
+            const scrollPos = window.scrollY + 100;
+            const mobileLinks = mobileNavList.querySelectorAll('a');
+            
+            sections.forEach(section => {
+                const top = section.offsetTop;
+                const bottom = top + section.offsetHeight;
+                const id = section.getAttribute('id');
+                
+                if (scrollPos >= top && scrollPos < bottom) {
+                    mobileLinks.forEach(link => {
+                        link.classList.remove('active');
+                        if (link.getAttribute('href') === `#${id}`) {
+                            link.classList.add('active');
+                        }
+                    });
+                }
+            });
+        }
+
+        // Update active navigation on scroll
+        window.addEventListener('scroll', updateMobileActiveNav);
+    }
+    
+    // Initialize mobile navigation
+    initializeMobileNavigation();
+    
+    // Initialize scroll to top button
+    initializeScrollToTop();
+    
+    // Initialize theme management
+    initializeTheme();
+    
+    // Theme Management Functions
+    function initializeTheme() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const urlTheme = urlParams.get('theme');
+        
+        // Valid theme options
+        const validThemes = ['light', 'dark', 'system'];
+        
+        let selectedTheme = 'system'; // default
+        
+        if (urlTheme && validThemes.includes(urlTheme)) {
+            // Theme from URL takes priority
+            selectedTheme = urlTheme;
+            // Save to localStorage for future visits
+            localStorage.setItem('preferred-theme', selectedTheme);
+        } else {
+            // Check localStorage for saved preference
+            const savedTheme = localStorage.getItem('preferred-theme');
+            if (savedTheme && validThemes.includes(savedTheme)) {
+                selectedTheme = savedTheme;
+            }
+        }
+        
+        applyTheme(selectedTheme);
+        
+        // Add theme info to console for debugging
+        console.log(`Theme applied: ${selectedTheme}`);
+        if (urlTheme) {
+            console.log(`Theme from URL parameter: ${urlTheme}`);
+        }
+    }
+    
+    function applyTheme(theme) {
+        const body = document.body;
+        
+        // Remove any existing theme classes
+        body.classList.remove('theme-light', 'theme-dark', 'theme-system');
+        
+        // Apply the selected theme
+        body.classList.add(`theme-${theme}`);
+        
+        // Set data attribute for CSS targeting
+        body.setAttribute('data-theme', theme);
+        
+        // For system theme, we'll rely on CSS media queries
+        // For light/dark themes, we'll override the media queries
+    }
+    
+    // Expose theme function globally for potential future use
+    window.setTheme = function(theme) {
+        const validThemes = ['light', 'dark', 'system'];
+        if (validThemes.includes(theme)) {
+            applyTheme(theme);
+            localStorage.setItem('preferred-theme', theme);
+            
+            // Update URL without reloading the page
+            const url = new URL(window.location);
+            url.searchParams.set('theme', theme);
+            window.history.replaceState({}, '', url);
+            
+            console.log(`Theme changed to: ${theme}`);
+        } else {
+            console.error(`Invalid theme: ${theme}. Valid options are: ${validThemes.join(', ')}`);
+        }
+    };
+    
+    // Copy to Clipboard functionality for code blocks
+    function initializeCodeCopy() {
+        // Add copy buttons to all pre elements
+        const preElements = document.querySelectorAll('pre');
+        
+        preElements.forEach(pre => {
+            // Skip if copy button already exists
+            if (pre.querySelector('.code-copy-btn')) return;
+            
+            const copyBtn = document.createElement('button');
+            copyBtn.className = 'code-copy-btn';
+            copyBtn.innerHTML = `
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2" stroke="currentColor" stroke-width="2" fill="none"/>
+                    <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" stroke="currentColor" stroke-width="2" fill="none"/>
+                </svg>
+            `;
+            copyBtn.title = 'Copy code to clipboard';
+            
+            copyBtn.addEventListener('click', async () => {
+                const code = pre.querySelector('code') || pre;
+                const textToCopy = code.textContent || code.innerText;
+                
+                try {
+                    await navigator.clipboard.writeText(textToCopy);
+                    
+                    // Show success feedback
+                    copyBtn.innerHTML = `
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2" fill="none"/>
+                        </svg>
+                    `;
+                    copyBtn.classList.add('copied');
+                    
+                    // Reset after 2 seconds
+                    setTimeout(() => {
+                        copyBtn.innerHTML = `
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <rect x="9" y="9" width="13" height="13" rx="2" ry="2" stroke="currentColor" stroke-width="2" fill="none"/>
+                                <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" stroke="currentColor" stroke-width="2" fill="none"/>
+                            </svg>
+                        `;
+                        copyBtn.classList.remove('copied');
+                    }, 2000);
+                    
+                } catch (err) {
+                    console.error('Failed to copy text: ', err);
+                    
+                    // Fallback for older browsers
+                    const textArea = document.createElement('textarea');
+                    textArea.value = textToCopy;
+                    document.body.appendChild(textArea);
+                    textArea.select();
+                    document.execCommand('copy');
+                    document.body.removeChild(textArea);
+                    
+                    // Show success feedback
+                    copyBtn.innerHTML = `
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2" fill="none"/>
+                        </svg>
+                    `;
+                    copyBtn.classList.add('copied');
+                    
+                    setTimeout(() => {
+                        copyBtn.innerHTML = `
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <rect x="9" y="9" width="13" height="13" rx="2" ry="2" stroke="currentColor" stroke-width="2" fill="none"/>
+                                <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" stroke="currentColor" stroke-width="2" fill="none"/>
+                            </svg>
+                        `;
+                        copyBtn.classList.remove('copied');
+                    }, 2000);
+                }
+            });
+            
+            pre.appendChild(copyBtn);
+        });
+    }
+    
+    // Initialize copy functionality when content loads
+    initializeCodeCopy();
+
+    // Add cache management functions (for debugging)
+    window.CacheDebug = {
+        // Show cache status
+        status() {
+            const cacheKeys = [];
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (key && key.startsWith('neo_api_cache_')) {
+                    cacheKeys.push(key);
+                }
+            }
+            
+            console.log(`📊 Cache Status:`);
+            console.log(`- Cached items: ${cacheKeys.length}/${CACHE_CONFIG.MAX_CACHE_SIZE}`);
+            console.log(`- Cache version: ${CACHE_CONFIG.VERSION}`);
+            console.log(`- Expiry: ${CACHE_CONFIG.EXPIRY_HOURS} hours`);
+            
+            // Show cache usage
+            let totalSize = 0;
+            cacheKeys.forEach(key => {
+                const item = localStorage.getItem(key);
+                if (item) {
+                    totalSize += item.length;
+                }
+            });
+            
+            console.log(`- Total cache size: ~${(totalSize / 1024).toFixed(2)} KB`);
+            return { count: cacheKeys.length, size: totalSize };
+        },
+        
+        // Clear cache
+        clear() {
+            CacheManager.clearAllCache();
+            console.log('🗑️ Cache cleared');
+        },
+        
+        // List cached items
+        list() {
+            const items = [];
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (key && key.startsWith('neo_api_cache_')) {
+                    try {
+                        const data = JSON.parse(localStorage.getItem(key));
+                        items.push({
+                            url: data.url,
+                            age: Math.round((Date.now() - data.timestamp) / 60000) + ' minutes',
+                            size: localStorage.getItem(key).length + ' chars'
+                        });
+                    } catch (e) {
+                        items.push({ url: key, age: 'invalid', size: 'unknown' });
+                    }
+                }
+            }
+            
+            console.table(items);
+            return items;
+        }
+    };
+});
