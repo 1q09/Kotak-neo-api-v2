@@ -1,51 +1,13 @@
 {
   "sections": [
     {
-      "id": "trade-api-faq",
-      "title": "Trade API FAQ",
-      "file": "content/trade-api-faq .md",
-      "subsections": [
-        {
-          "id": "tokens-authentication",
-          "title": "Tokens & Authentication"
-        },
-        {
-          "id": "login-baseurl",
-          "title": "Login & baseUrl"
-        },
-        {
-          "id": "headers-endpoint-usage",
-          "title": "Headers & Endpoint Usage"
-        },
-        {
-          "id": "totp-registration-troubleshooting",
-          "title": "TOTP Registration & Troubleshooting"
-        },
-        {
-          "id": "static-ip-family-mapping",
-          "title": "Static IP & Family Mapping"
-        },
-        {
-          "id": "api-changes",
-          "title": "API Changes"
-        },
-        {
-          "id": "third-party-sdks",
-          "title": "Third-Party & SDKs"
-        },
-        {
-          "id": "rate-limits-cutover",
-          "title": "Rate Limits & Cutover"
-        },
-        {
-          "id": "error-faqs",
-          "title": "Error FAQs"
-        }
-      ]
+      "id": "quick-navigation",
+      "title": "📚 Quick Navigation",
+      "file": "content/quick-navigation.md"
     },
     {
       "id": "login-with-totp",
-      "title": "Login with TOTP", 
+      "title": "Getting Started (15 minutes)", 
       "file": "content/login-with-totp.md"
     },
     {
@@ -104,6 +66,16 @@
       "id": "quotes",
       "title": "Quotes",
       "file": "content/quotes.md"
+    },
+    {
+      "id": "websocker",
+      "title": "NEO Websocket",
+      "file": "content/websocket/websocket.md"
+    },
+    {
+      "id": "trade-api-faq",
+      "title": "Troubleshooting - FAQs/Error codes",
+      "file": "content/trade-api-faq .md"
     },
     {
       "id": "curl-examples",

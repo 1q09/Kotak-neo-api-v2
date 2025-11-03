@@ -82,9 +82,9 @@ curl -X POST "<baseUrl>/quick/order/rule/ms/place" \
 | --- | --- | --- | --- |
 | am | string | After Market Order flag. | "NO" (normal), "YES" (AMO) |
 | dq | string | Disclosed quantity. | "0" or a partial quantity |
-| es | string | Exchange segment code. | "nse_cm", "bse_cm", "nse_fo", "bse_fo", "cde_fo" |
+| es | string | Exchange segment code. | "nse_cm", "bse_cm", "nse_fo", "bse_fo", "cde_fo", “mcx_fo” |
 | mp | string | Market protection value (used in some market orders). | "0" or numerical value |
-| pc | string | Product code. | "NRML", "CNC", "MIS", "CO", "BO" |
+| pc | string | Product code. | "NRML", "CNC", "MIS", "CO", "BO", “MTF” |
 | pf | string | Portfolio flag. | "N" |
 | pr | string | Price for limit order, "0" for market order. | e.g. "0", "450.5" |
 | pt | string | Order type. | "L" (Limit), "MKT" (Market), "SL" (Stoploss), "SL-M" (SL-Market) |

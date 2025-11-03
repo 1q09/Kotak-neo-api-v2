@@ -284,6 +284,26 @@ p {
     transition: color 0.3s;
 }
 
+/* Content area links styling - darker colors for better readability */
+.content a,
+.documentation-content a {
+    color: #0969da;
+    text-decoration: none;
+    font-weight: 500;
+    transition: color 0.2s ease;
+}
+
+.content a:hover,
+.documentation-content a:hover {
+    color: #0550ae;
+    text-decoration: underline;
+}
+
+.content a:visited,
+.documentation-content a:visited {
+    color: #8250df;
+}
+
 ol {
     margin-left: 20px;
     margin-bottom: 16px;
@@ -298,6 +318,22 @@ li {
 @media (prefers-color-scheme: dark) {
     p, li {
         color: #7d8590;
+    }
+    
+    /* Dark theme link styles */
+    .content a,
+    .documentation-content a {
+        color: #58a6ff;
+    }
+    
+    .content a:hover,
+    .documentation-content a:hover {
+        color: #79c0ff;
+    }
+    
+    .content a:visited,
+    .documentation-content a:visited {
+        color: #d2a8ff;
     }
 }
 

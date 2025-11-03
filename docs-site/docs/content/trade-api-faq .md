@@ -1,4 +1,4 @@
-# 📌 Kotak Neo Trade API v2 – FAQs
+# 📌 Troubleshooting - FAQs/Error codes
 
 ## <span id="tokens-authentication">🔑 Tokens & Authentication</span>
 
